@@ -487,7 +487,9 @@ function drawBody(B,c,me,idx,noCom){const g=el("g",{});
   const yb=-12*U,bad=B.comOut>0,cc=bad?"var(--warn)":c,cx=B.com[0],cy=Y(B.com[1]),r=7*U;
   if(isFinite(B.sup[0])){line([B.sup[0],yb],[Math.max(B.sup[1],B.sup[0]+8),yb],4.5*U,c,g,{opacity:.6,"stroke-linecap":"butt"});
     const t=el("text",{x:B.sup[0]-6*U,y:Y(yb)+4*U,"font-size":11*U,fill:"var(--muted)","text-anchor":"end","font-family":"IBM Plex Sans KR, sans-serif"},g);t.textContent="지지면";}
-  el("line",{x1:cx,y1:cy,x2:cx,y2:Y(yb),stroke:cc,"stroke-width":(bad?1.6:1)*U,"stroke-dasharray":`${3.5*U} ${3*U}`,opacity:bad?1:.6},g);
+  // 몸 위에서도 보이도록 바탕색 테두리를 깔고 그 위에 점선을 그린다
+  el("line",{x1:cx,y1:cy,x2:cx,y2:Y(yb),stroke:"var(--paper)","stroke-width":3.6*U,"stroke-dasharray":`${4.5*U} ${2*U}`,"stroke-dashoffset":.5*U,opacity:.9},g);
+  el("line",{x1:cx,y1:cy,x2:cx,y2:Y(yb),stroke:bad?cc:"var(--fg)","stroke-width":1.5*U,"stroke-dasharray":`${3.5*U} ${3*U}`,opacity:bad?1:.8},g);
   el("circle",{cx,cy,r,fill:"var(--paper)",stroke:cc,"stroke-width":1.6*U},g);
   el("path",{d:`M ${cx} ${cy-r} A ${r} ${r} 0 0 1 ${cx+r} ${cy} L ${cx} ${cy} Z M ${cx} ${cy+r} A ${r} ${r} 0 0 1 ${cx-r} ${cy} L ${cx} ${cy} Z`,fill:cc},g);}
 // 관절 가동범위 부채꼴: 각 관절에서 분절이 갈 수 있는 방향(절대각 a0~a1, dir 함수)
