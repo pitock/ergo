@@ -208,7 +208,7 @@ body.m-move #mcard{display:none!important}
     <div class="zhint" id="zhint">두 손가락으로 확대·축소, 빈 곳을 끌어 이동</div>
     <svg id="cv" viewBox="-900 -2450 2000 2610" role="img" aria-label="인체 더미 측면도"></svg>
     <div class="anim" id="animBar" hidden>
-      <button class="chip" id="aPlay">일시정지</button>
+      <button class="chip" id="aPlay">❚❚ 일시정지</button>
       <input type="range" id="aPh" min="0" max="100" value="0" aria-label="동작 주기 진행">
       <span id="aPhV">0%</span>
     </div>
@@ -681,7 +681,7 @@ function syncUI(P){SL.forEach(([k])=>{const v=Math.round(P[k]);$("s_"+k).value=v
   document.querySelectorAll("[data-p]").forEach(b=>b.setAttribute("aria-pressed",S.cur===b.dataset.p));
   document.querySelectorAll("[data-cmp]").forEach(b=>b.setAttribute("aria-pressed",!!S.cmp[b.dataset.cmp]));
   $("sexM").setAttribute("aria-pressed",S.sex==="m");$("sexF").setAttribute("aria-pressed",S.sex==="f");
-  $("animBar").hidden=!S.anim;if(S.anim){$("aPh").value=Math.round(S.anim.f*100);$("aPhV").textContent=Math.round(S.anim.f*100)+"%";$("aPlay").textContent=S.anim.play?"일시정지":"재생";}}
+  $("animBar").hidden=!S.anim;if(S.anim){$("aPh").value=Math.round(S.anim.f*100);$("aPhV").textContent=Math.round(S.anim.f*100)+"%";$("aPlay").textContent=S.anim.play?"❚❚ 일시정지":"▶ 재생";}syncBtns();}
 
 // ---------- 애니메이션 ----------
 let raf=0,tPrev=0;
@@ -698,12 +698,15 @@ function loop(t){if(!S.anim||!S.anim.play){raf=0;return;}const dt=tPrev?Math.min
   S.anim.f=(S.anim.f+dt/curPeriod())%1;travel();draw();raf=requestAnimationFrame(loop);}
 function startAnim(kind,seq){S.anim={kind,seq,f:0,play:true,prints:[]};if(kind!=="seq")S.x=TRACK[0];tPrev=0;if(!raf)raf=requestAnimationFrame(loop);}
 function stopAnim(keep){if(!S.anim)return;if(keep)S.pose=Object.assign({},P0,curP(S.anim.f));S.anim=null;S.cur=null;cancelAnimationFrame(raf);raf=0;}
-$("aPlay").onclick=()=>{if(!S.anim)return;S.anim.play=!S.anim.play;if(S.anim.play){tPrev=0;raf=requestAnimationFrame(loop);}draw();};
+$("aPlay").onclick=()=>togglePlay();
 $("aPh").addEventListener("input",e=>{if(!S.anim)return;S.anim.play=false;S.anim.f=+e.target.value/100%1;draw();});
 try{if(matchMedia("(prefers-reduced-motion: reduce)").matches)GAIT.reduce=true;}catch(e){}
 
 // ---------- 입력 ----------
-document.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{const p=b.dataset.p;stopAnim(false);S.cur=p;S.x=0;V.ox=V.oy=0;wantSize=true;
+function togglePlay(){if(!S.anim)return;S.anim.play=!S.anim.play;if(S.anim.play){tPrev=0;if(!raf)raf=requestAnimationFrame(loop);}draw();}
+document.querySelectorAll("[data-p]").forEach(b=>{if(/▶\s*$/.test(b.textContent)){b.dataset.base=b.textContent.replace(/\s*▶\s*$/,"");b.dataset.anim="1";}});
+function syncBtns(){document.querySelectorAll("[data-p][data-anim]").forEach(b=>{const on=S.anim&&S.cur===b.dataset.p&&S.anim.play;const t=b.dataset.base+(on?" ❚❚":" ▶");if(b.textContent!==t)b.textContent=t;b.setAttribute("aria-label",b.dataset.base+(on?" 일시정지":" 재생"));});}
+document.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{const p=b.dataset.p;if(b.dataset.anim&&S.anim&&S.cur===p){togglePlay();return;}stopAnim(false);S.cur=p;S.x=0;V.ox=V.oy=0;wantSize=true;
   if(GAIT[p]&&p!=="reduce"){setPose("stand");startAnim(p);if(GAIT.reduce)S.anim.play=false;}
   else if(SEQ[p]){setPose(p);startAnim("seq",p);if(GAIT.reduce){S.anim.play=false;S.anim.f=(SEQ[p].length-1)*SEG/seqPeriod(p);}}
   else setPose(p);draw();});
