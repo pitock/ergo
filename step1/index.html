@@ -1,0 +1,885 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../icons/icon-192.png">
+<meta name="theme-color" content="#22333F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Step1 인체 더미 동작</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* 레이아웃: 좌측 1/10 모눈 입면 캔버스(한 화면 고정) + 우측 조작 패널(독립 스크롤), 폰에서는 캔버스 상단 고정 */
+:root{
+  --bg:#f3f5f4; --paper:#fbfcfb; --fg:#1d2522; --muted:#5d6a65; --line:#d3dbd7;
+  --grid:#dfe7e3; --grid2:#bfccc6; --accent:#1f6f6a; --accent-soft:#d6ebe8;
+  --furn:#8a7a66; --furn-fill:#e8e1d6; --warn:#b4471f; --ok:#2f7a3c;
+  --p5:#c9871a; --p50:#6b7a86; --p95:#8a4f9e; --pme:#2457c5; --furn:#8a7a66; --furn-fill:#e8e1d6;
+  --sans:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131917; --paper:#182120; --fg:#e4ebe8; --muted:#97a6a0; --line:#2c3836;
+  --grid:#22302d; --grid2:#33463f; --accent:#5fc0b6; --accent-soft:#1f3a37;
+  --furn:#b8a88f; --furn-fill:#2e2a24; --warn:#ef8a5e; --ok:#7fcb8a;
+  --p5:#e8b04e; --p50:#a3b0ba; --p95:#c592dc; --pme:#7aa2ff; --furn:#b8a88f; --furn-fill:#2e2a24; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#131917; --paper:#182120; --fg:#e4ebe8; --muted:#97a6a0; --line:#2c3836;
+  --grid:#22302d; --grid2:#33463f; --accent:#5fc0b6; --accent-soft:#1f3a37;
+  --furn:#b8a88f; --furn-fill:#2e2a24; --warn:#ef8a5e; --ok:#7fcb8a;
+  --p5:#e8b04e; --p50:#a3b0ba; --p95:#c592dc; --pme:#7aa2ff; --furn:#b8a88f; --furn-fill:#2e2a24; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px;
+  display:flex;flex-direction:column}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin-bottom:10px}
+h1{font-size:19px;font-weight:700;margin:0;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:13px;flex:1 1 260px;min-width:0}
+.wrap{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,1fr);gap:14px}
+.stage{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:8px;min-width:0;min-height:0;display:flex;flex-direction:column}
+svg#cv{display:block;width:100%;flex:1;min-height:0;touch-action:none;cursor:crosshair;user-select:none}
+svg#cv.grab{cursor:grabbing}
+.panel{overflow-y:auto;min-height:0;padding-right:4px;display:flex;flex-direction:column;gap:12px;min-width:0}
+}
+.scale{display:flex;justify-content:space-between;flex-wrap:wrap;gap:2px 12px;font-size:12px;color:var(--muted);padding:6px 4px 0;font-family:var(--mono)}
+.legend{display:flex;gap:12px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+section.box{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:10px 12px;min-width:0}
+section.box h2{font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--muted);margin:0 0 8px;text-transform:uppercase}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+button.chip{font:inherit;font-size:13px;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--fg);cursor:pointer}
+button.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--paper)}
+button.chip:disabled{opacity:.4;cursor:default}
+button.pc{display:inline-flex;align-items:center;gap:6px}
+button.pc i{width:10px;height:10px;border-radius:2px;display:inline-block}
+button.pc small{display:none;font-size:11px;padding:0 5px;border-radius:999px;background:var(--paper);color:var(--accent);font-weight:600}
+button.pc.ref small{display:inline}
+button.chip:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pct{display:flex;gap:6px;flex-wrap:wrap}
+.pct label,.tog{display:flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--line);border-radius:999px;cursor:pointer;font-size:13px}
+.pct input,.tog input{accent-color:var(--accent)}
+.sl{display:grid;grid-template-columns:7.5em minmax(0,1fr) 3.4em;align-items:center;gap:8px;margin:1px 0}
+.sl span.v{font-family:var(--mono);font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
+.sl label{font-size:13px}
+.sl.auto label{color:var(--accent)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.furn{display:grid;grid-template-columns:auto minmax(0,1fr) 5.5em;gap:6px 8px;align-items:center;font-size:13px}
+.furn input[type=number],.stat input{width:100%;font:inherit;font-family:var(--mono);font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--fg);text-align:right}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;font-family:var(--sans)}
+thead th{font-family:var(--sans);font-weight:600}
+td.w{color:var(--warn);font-weight:600} td.o{color:var(--ok);font-weight:600}
+tr.rel td:first-child{color:var(--accent);font-weight:600}
+tr.sep td{border-top:2px solid var(--line)}
+.stat{display:grid;grid-template-columns:3em repeat(3,minmax(0,1fr));gap:6px;align-items:center;font-size:12px}
+.stat b{font-weight:600;text-align:center}
+.me{display:grid;grid-template-columns:minmax(0,1fr) 6.5em;gap:5px 8px;align-items:center;font-size:13px}
+.me input{width:100%;font:inherit;font-family:var(--mono);font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--fg);text-align:right}
+.me input::placeholder{color:var(--muted);opacity:.8}
+.me label small{color:var(--muted);font-size:11.5px}
+.me b.no{display:inline-grid;place-items:center;width:18px;height:18px;margin-right:6px;border-radius:50%;background:var(--pme);color:var(--paper);font-size:11px;font-weight:600;font-family:var(--mono);vertical-align:1px}
+button.ghost{font:inherit;font-size:13px;padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--fg);cursor:pointer}
+button.act{font:inherit;font-size:13px;font-weight:600;padding:6px 12px;border-radius:6px;border:1px solid var(--pme);background:var(--pme);color:var(--bg);cursor:pointer}
+button.act:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+details summary{cursor:pointer;font-size:13px;color:var(--muted)}
+.note{font-size:12px;color:var(--muted);margin:8px 0 0}
+.hint{font-size:12.5px;margin:8px 0 0;color:var(--fg)}
+.tip{font-size:12px;color:var(--muted);margin:6px 0 0}
+
+.anim[hidden]{display:none}
+.anim{display:flex;align-items:center;gap:8px;padding:6px 4px 0}
+.anim input{flex:1;min-width:0;accent-color:var(--accent)}
+.anim span{font-family:var(--mono);font-size:12px;width:3.2em;text-align:right;color:var(--muted)}
+.codebox{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;padding:8px 10px;border:1px dashed var(--line);border-radius:6px;background:var(--bg)}
+.codebox .lbl{font-size:12px;color:var(--muted);font-weight:600}
+.codebox code{font-family:var(--mono);font-size:13.5px;flex:1 1 180px;min-width:0;overflow-wrap:anywhere;user-select:all;color:var(--fg)}
+.joints{display:flex;flex-wrap:wrap;gap:4px 12px;margin-bottom:6px}
+.jt{font-family:var(--mono);font-size:12px}.jt small{color:var(--muted);font-size:11px}.jt.w{color:var(--warn);font-weight:600}
+.sl label small{color:var(--muted);font-size:11px}
+/* 레이아웃: 넓은 화면은 그림 | (조작 고정부 + 옵션) 두 칸, 폰은 그림 → 조작 고정부 → 옵션(한 묶음씩 넘김) 세로 배치 */
+.side{overflow-y:auto;min-height:0;min-width:0;display:flex;flex-direction:column;gap:12px;padding-right:4px}
+.side .panel{overflow:visible;padding-right:0}
+.dock{display:flex;flex-direction:column;gap:12px;min-width:0}
+.stage{position:relative}
+.vbtn{position:absolute;top:8px;right:8px;z-index:2;display:flex;gap:4px}
+.vbtn button{font:inherit;font-size:12px;font-weight:600;min-width:34px;height:30px;padding:0 9px;border-radius:6px;border:1px solid var(--line);background:var(--paper);color:var(--fg);cursor:pointer;opacity:.92}
+.vbtn button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.zhint{position:absolute;left:8px;top:44px;z-index:2;font-size:11.5px;color:var(--muted);background:var(--paper);padding:3px 7px;border-radius:5px;border:1px solid var(--line);opacity:.92;pointer-events:none}
+@media (max-width:860px){
+  html,body{height:100%;overflow:hidden}
+  body{display:flex;flex-direction:column;padding-block:4px 0}
+  body::before{display:none}
+  header{margin-bottom:4px;gap:4px 10px;flex-wrap:nowrap;min-width:0}
+  header h1{font-size:15px;flex:none}
+  header .sub{display:none}
+  header #scenes{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;min-width:0;padding-bottom:2px}
+  header #scenes::-webkit-scrollbar{display:none}
+  header #scenes button.chip{flex:none;font-size:12px;padding:4px 9px}
+  .wrap{display:flex;flex-direction:column;gap:6px;flex:1;min-height:0}
+  .side{display:contents}
+  .stage{flex:1 1 0;min-height:150px;height:auto;position:relative;padding:2px;margin:0;box-shadow:none}
+  .scale{display:none}
+  .anim{padding:2px 4px 0}
+  .dock{flex:none;gap:6px}
+  .dock section.box{padding:6px 8px}
+  .dock section.box h2,.dock .tip,.dock .hide-m{display:none}
+  .dock #presets{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0!important;padding-bottom:2px}
+  .dock #presets::-webkit-scrollbar{display:none}
+  .dock #presets button.chip{flex:none;font-size:12.5px;padding:5px 10px}
+  .dock #sliders{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+  .dock .sl{grid-template-columns:minmax(0,1fr) auto;gap:0 4px;margin:0}
+  .dock .sl label{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dock .sl label small{display:none}
+  .dock .sl span.v{font-size:11px}
+  .dock .sl input{grid-column:1/-1;grid-row:2;height:22px}
+  .dock .row{margin:0!important}
+  .side .panel{flex:0 0 clamp(160px,29vh,320px);overflow-y:auto;scroll-snap-type:y mandatory;overscroll-behavior:contain;gap:8px;padding-bottom:max(8px,env(safe-area-inset-bottom,0px))}
+  .panel section.box{scroll-snap-align:start;padding:8px 10px}
+  th,td{padding:3px 5px;font-size:12px}
+  .vbtn{top:4px;right:4px}
+  .zhint{top:38px;left:4px}
+  }
+
+.jsel,.pgrip,.sgrip{display:none}
+@media (max-width:860px){
+  .jsel{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin-bottom:2px}
+  .jsel::-webkit-scrollbar{display:none}
+  .jsel button{flex:none;font:inherit;font-size:12px;padding:3px 9px;border-radius:5px;border:1px solid var(--line);background:transparent;color:var(--fg);cursor:pointer}
+  .jsel button[aria-pressed="true"]{background:var(--fg);color:var(--paper);border-color:var(--fg)}
+  .dock #sliders{display:block}
+  .dock .sl{display:none}
+  .dock .sl.on{display:grid;grid-template-columns:minmax(0,1fr) 3.2em;gap:0 8px}
+  .dock .sl.on label{display:none}
+  .dock .sl.on input{grid-column:1;grid-row:1;height:26px}
+  .dock .sl.on span.v{grid-column:2;font-size:12px}
+  .pgrip{display:flex;flex:none;align-items:center;justify-content:center;gap:8px;height:22px;margin:0 0 -4px;border:0;background:transparent;color:var(--muted);font:inherit;font-size:11.5px;cursor:pointer}
+  .pgrip::before{content:"";width:36px;height:4px;border-radius:2px;background:var(--line)}
+  .sgrip{display:flex;flex:none;height:18px;margin:-5px 0 -4px;align-items:center;justify-content:center;touch-action:none;cursor:ns-resize;user-select:none}
+  .sgrip::before{content:"";width:48px;height:5px;border-radius:3px;background:var(--muted);opacity:.55}
+  .sgrip:active::before,.sgrip:focus-visible::before{background:var(--accent);opacity:1}
+  .sgrip:focus-visible{outline:none}
+  .stage[style*="height"]{flex:none}
+  .side .panel{flex:1 1 0;min-height:110px}
+}
+
+.mtabs{display:flex;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex:none;background:var(--paper)}
+.mtabs button{flex:1;font:inherit;font-size:14px;font-weight:600;padding:8px 0;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.mtabs button[aria-pressed="true"]{background:var(--accent);color:var(--paper)}
+.mtabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+body.m-measure .mv{display:none!important}
+body.m-move #mcard{display:none!important}
+.mchips{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin-bottom:8px}
+.mchips::-webkit-scrollbar{display:none}
+.mchips button{flex:none;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--muted);font:inherit;font-size:16px;cursor:pointer;padding:0}
+.mchips button.done{border-color:var(--pme);color:var(--pme);font-weight:700}
+.mchips button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--paper)}
+.mhead{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.mhead b{font-size:17px}.mhead span{font-size:12px;color:var(--muted)}
+.mhead .prog{margin-left:auto;font-family:var(--mono)}
+.mrole{display:grid;grid-template-columns:5.6em minmax(0,1fr);gap:6px;font-size:13px;line-height:1.45;margin:3px 0}
+.mrole .tag{font-size:11.5px;font-weight:600;color:var(--accent);padding-top:1px}
+.mtool{font-size:12px;color:var(--muted);margin:4px 0 8px}
+.minput{display:flex;align-items:center;gap:6px}
+.minput input{flex:1;min-width:0;font:inherit;font-family:var(--mono);font-size:18px;padding:6px 10px;border:1.5px solid var(--accent);border-radius:6px;background:var(--bg);color:var(--fg);text-align:right}
+.minput span{font-size:13px;color:var(--muted)}
+.minput button{flex:none}
+#mNote{margin:6px 0 0;font-size:12px;color:var(--muted)}
+#mNote:empty{display:none}
+@media (max-width:860px){
+  .mtabs button{padding:6px 0;font-size:13px}
+  .dock #mcard{padding:8px 10px}
+  .mrole{font-size:12.5px;line-height:1.4}
+  .mhead b{font-size:15px}
+}
+</style>
+<header>
+  <h1>1단계 · 독립 신체</h1>
+  <span class="sub">내 치수로 더미를 만들고, 여러 동작에서 관절 가동범위와 몸이 차지하는 공간을 확인합니다.</span>
+</header>
+
+<div class="wrap">
+  <div class="stage">
+    <div class="vbtn"><button id="vOut" aria-label="축소">−</button><button id="vIn" aria-label="확대">+</button><button id="vFit">맞춤</button></div>
+    <div class="zhint" id="zhint">두 손가락으로 확대·축소, 빈 곳을 끌어 이동</div>
+    <svg id="cv" viewBox="-900 -2450 2000 2610" role="img" aria-label="인체 더미 측면도"></svg>
+    <div class="anim" id="animBar" hidden>
+      <button class="chip" id="aPlay">일시정지</button>
+      <input type="range" id="aPh" min="0" max="100" value="0" aria-label="동작 주기 진행">
+      <span id="aPhV">0%</span>
+    </div>
+    <div class="scale">
+      <span>○ 관절을 끌어 자세 · ◐ 무게중심을 끌면 몸 전체 이동·일으켜 세우기 · 빈 곳을 끌어 화면 이동 · 휠·두 손가락으로 확대</span>
+      <span class="legend" id="legend"></span>
+    </div>
+  </div>
+
+  <div class="sgrip" id="sGrip" role="separator" aria-orientation="horizontal" aria-label="그림 창 높이 조절(끌어서 크기 변경, 두 번 눌러 자동)" tabindex="0"></div>
+  <div class="side">
+  <div class="mtabs" role="group" aria-label="화면 선택"><button data-mode="measure" aria-pressed="true">① 측정</button><button data-mode="move" aria-pressed="false">② 동작</button></div>
+  <div class="dock">
+    <section class="box" id="mcard">
+      <div class="mchips" id="mchips"></div>
+      <div class="mhead"><b id="mTitle"></b><span id="mSub"></span><span class="prog" id="mProg"></span></div>
+      <div class="mrole"><span class="tag">측정받는 사람</span><span id="mWho"></span></div>
+      <div class="mrole"><span class="tag">측정하는 사람</span><span id="mDoer"></span></div>
+      <div class="mtool" id="mTool"></div>
+      <div class="minput"><button class="ghost" id="mPrev">이전</button><input type="number" id="mVal" inputmode="numeric" aria-label="측정값(mm)"><span>mm</span><button class="act" id="mNext">다음</button></div>
+      <p id="mNote"></p>
+    </section>
+    <section class="box mv">
+      <h2>동작</h2>
+      <div class="row" id="presets">
+        <button class="chip" data-p="stand">서기</button>
+        <button class="chip" data-p="walk">걷기 ▶</button>
+        <button class="chip" data-p="run">뛰기 ▶</button>
+        <button class="chip" data-p="reachF">앞으로 뻗기 ▶</button>
+        <button class="chip" data-p="reachU">위로 뻗기 ▶</button>
+        <button class="chip" data-p="pick">허리 굽혀 줍기 ▶</button>
+        <button class="chip" data-p="squat">쪼그리기 ▶</button>
+        <button class="chip" data-p="kneel">무릎 꿇기 ▶</button>
+        <button class="chip" data-p="step">한 발 들기 ▶</button>
+        <button class="chip" data-p="floorSit">바닥에 앉기 ▶</button>
+        <button class="chip" data-p="lie">눕기 ▶</button>
+      </div>
+      <p class="tip">모든 동작은 서 있는 자세에서 시작해 움직이며 반복합니다. 걷기·뛰기는 바닥 위를 앞으로 나아가며 발자국을 남깁니다. 그림 아래 막대로 멈추거나 특정 순간을 볼 수 있고, 관절을 끌면 그 순간의 자세에서 멈춥니다. 관절은 정상 가동범위를 넘어가지 않습니다.</p>
+    </section>
+    <section class="box mv">
+      <h2>관절 각도</h2>
+      <div class="jsel" id="jsel"></div>
+      <div id="sliders"></div>
+      <p class="tip">해부학 기준 각도입니다. 어깨·고관절은 몸통에 대한 굽힘(+)과 젖힘(−), 몸통은 수직에 대한 기울기입니다. 오른쪽 몸(앞쪽 팔다리) 기준이며, 뒤쪽 팔다리는 동작에 따라 함께 움직입니다.</p>
+    </section>
+  </div>
+  <div class="panel">
+    <section class="box mv">
+      <h2>측정</h2>
+      <div class="tbl"><table id="out"></table></div>
+      <p class="hint" id="hint"></p>
+    </section>
+    <section class="box">
+      <h2>나의 치수</h2>
+      <div class="me">
+        <label for="meH"><b class="no">1</b>키 <small>벽에 등 대고 머리 위 책으로 표시</small></label><input type="number" id="meH" step="1">
+        <label for="meSit"><b class="no">2</b>앉은키 <small>좌면~머리끝, 벽에 등 대고</small></label><input type="number" id="meSit">
+        <label for="meSel"><b class="no">3</b>앉은 팔꿈치높이 <small>좌면~팔꿈치 아래, 팔꿈치 90°</small></label><input type="number" id="meSel">
+        <label for="meFh"><b class="no">4</b>팔꿈치~손끝 길이 <small>팔꿈치를 책상 모서리에</small></label><input type="number" id="meFh">
+        <label for="mePop"><b class="no">5</b>오금높이 <small>무릎 90°, 바닥~무릎 뒤 허벅지 아래</small></label><input type="number" id="mePop">
+        <label for="meBpl"><b class="no">6</b>엉덩이~오금 길이 <small>엉덩이를 벽에 붙이고 앉아 벽~무릎 뒤</small></label><input type="number" id="meBpl">
+        <label for="meShw"><b class="no">7</b>어깨너비 <small>선 자세, 양 어깨 바깥에 책</small></label><input type="number" id="meShw">
+        <label for="meHipw"><b class="no">8</b>앉은 엉덩이너비 <small>앉은 자세, 엉덩이 양옆에 책(선택)</small></label><input type="number" id="meHipw">
+        <label for="meSpan"><b class="no">9</b>양팔 너비 <small>벽에 등 대고 양팔을 옆으로</small></label><input type="number" id="meSpan">
+        <label for="meFoot"><b class="no">10</b>발 길이 <small>뒤꿈치를 벽에, 발끝에 책</small></label><input type="number" id="meFoot">
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="ghost" id="resetMe">50% 체형으로 초기화</button>
+        <button class="ghost" id="restoreMe" disabled>원래 체형으로</button>
+      </div>
+      <p class="tip">단위 mm, 신발 벗고 두 번 재어 평균. 키만 넣어도 되고, 빈칸은 키 비율로 추정한 값(회색)을 씁니다.</p>
+      <div class="codebox">
+        <span class="lbl">더미 코드</span>
+        <code id="dcode"></code>
+        <button class="act" id="copyCode">복사</button>
+      </div>
+      <p class="tip">코드는 <b>D2-①키-②앉은키-③앉은 팔꿈치높이-④팔꿈치~손끝-⑤오금높이-⑥엉덩이~오금-⑦어깨너비-⑧엉덩이너비-⑨양팔 너비-⑩발 길이</b> 순서의 치수(mm)이며, 0은 입력하지 않아 키 비율로 추정한 항목입니다. 이 코드를 2단계(가구 치수) 도구의 '더미 불러오기'에 붙여 넣으면 같은 더미로 가구를 판정합니다. 입력값은 이 화면에서만 쓰이며 전송되지 않습니다.</p>
+    </section>
+
+
+    <section class="box mv">
+      <h2>표시</h2>
+      <div class="row">
+        <label class="tog"><input type="checkbox" id="lRom"> 관절 가동범위 항상 표시</label>
+        <label class="tog"><input type="checkbox" id="lReach" checked> 손 도달 범위</label>
+        <label class="tog"><input type="checkbox" id="lDim" checked> 높이 치수선</label>
+        <label class="tog"><input type="checkbox" id="lEnv" checked> 동작 점유 범위</label>
+      </div>
+      <p class="tip">관절을 끌거나 슬라이더를 움직이는 동안 그 관절의 가동범위만 부채꼴로 나타납니다. 부채꼴은 각 관절이 움직일 수 있는 정상 범위이며, 한계에 닿은 관절은 붉게 표시됩니다. 동작 점유 범위는 동작하는 동안 몸이 지나간 공간입니다.</p>
+    </section>
+
+
+
+    <section class="box mv">
+      <h2>비교 인체</h2>
+      <div class="row">
+        <button class="chip" id="sexM" aria-pressed="true">남성</button>
+        <button class="chip" id="sexF" aria-pressed="false">여성</button>
+        <span style="width:1px;height:20px;background:var(--line);margin:0 4px"></span>
+        <button class="chip pc" data-cmp="5"><i style="background:var(--p5)"></i>5%</button>
+        <button class="chip pc" data-cmp="50"><i style="background:var(--p50)"></i>50%</button>
+        <button class="chip pc" data-cmp="95"><i style="background:var(--p95)"></i>95%</button>
+      </div>
+      <p class="tip">같은 동작을 다른 체격으로 겹쳐 봅니다. 수치는 측정표에서 비교합니다.</p>
+      <details style="margin-top:10px">
+        <summary>키 기준값(mm) 수정</summary>
+        <div class="stat" style="margin-top:8px">
+          <span></span><b>5%</b><b>50%</b><b>95%</b>
+          <span>남성</span><input type="number" id="m5"><input type="number" id="m50"><input type="number" id="m95">
+          <span>여성</span><input type="number" id="f5"><input type="number" id="f50"><input type="number" id="f95">
+        </div>
+        <p class="note">기본값은 20~30대 한국인 성인의 참고용 추정치입니다. 수업 전 Size Korea 최신 측정값으로 바꾸어 사용하십시오.</p>
+      </details>
+      <p class="note">분절 길이는 Drillis·Contini(1966)의 키 대비 비율, 관절 가동범위는 일반 성인의 정상 범위(미국정형외과학회 기준 근사값), 걷기·뛰기는 표준 보행 각도 곡선을 단순화한 것입니다.</p>
+    </section>
+  </div>
+  </div>
+</div>
+
+<script>
+(function(){
+const NS="http://www.w3.org/2000/svg";
+const $=id=>document.getElementById(id);
+const rad=a=>a*Math.PI/180, deg=r=>r*180/Math.PI, clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const dn=a=>[Math.sin(rad(a)),-Math.cos(rad(a))], up=a=>[Math.sin(rad(a)),Math.cos(rad(a))];
+const add=(p,v,l)=>[p[0]+v[0]*l,p[1]+v[1]*l], lerp=(p,q,k)=>[p[0]+(q[0]-p[0])*k,p[1]+(q[1]-p[1])*k];
+const fmt=v=>Math.round(v).toLocaleString("ko-KR");
+
+// ---------- 인체 비율 ----------
+const BASE={trunk:.288,ua:.186,fa:.146,hand:.108,th:.245,sh:.246,ank:.039,neck:.11,head:.062,shw:.259,hipw:.21,foot:.152,span:1};
+const GRIP=.35; // 손은 그리지 않고 아래팔을 손바닥 중간(쥐는 점)까지 연장
+const M={head:.081,trunk:.497,ua:.028,fa:.016,hand:.006,th:.1,sh:.0465,foot:.0145}; // 팔다리는 한쪽 값
+// 관절 정상 가동범위(°): 몸통은 수직 기준, 나머지는 인접 분절 기준
+const ROM={t:[-30,90],n:[-45,50],sh:[-50,180],el:[0,145],hip:[-30,120],kn:[0,135]};
+const ROMNAME={t:"몸통",n:"목",sh:"어깨",el:"팔꿈치",hip:"고관절",kn:"무릎"};
+
+const S={
+  sex:"m", cmp:{5:false,50:false,95:false},
+  stat:{m:{5:1635,50:1735,95:1835},f:{5:1510,50:1605,95:1700}},
+  me:{H:1700,sit:null,sel:null,fh:null,pop:null,bpl:null,shw:null,hipw:null,span:null,foot:null},
+  pose:null, x:0, anim:null, lay:{rom:false,reach:true,dim:true,env:true}
+};
+function meRatios(){const m=S.me,H=m.H,r=Object.assign({},BASE);
+  if(m.pop)r.sh=clamp(m.pop/H+.04-BASE.ank,.17,.32);
+  if(m.bpl)r.th=clamp(m.bpl/H-.02,.17,.32);
+  const shSeat=m.sit?m.sit-(BASE.neck+BASE.head)*H:(.055+BASE.trunk)*H;
+  r.trunk=clamp(shSeat/H-.055,.2,.4);
+  if(m.sel)r.ua=clamp((shSeat-m.sel)/H,.12,.26);
+  if(m.fh){r.fa=m.fh*(.146/.254)/H;r.hand=m.fh*(.108/.254)/H;}
+  // 정면 치수: 어깨너비·엉덩이너비·양팔 너비·발 길이(빈칸은 키 비율로 추정)
+  r.shw=m.shw?m.shw/H:.259;r.hipw=m.hipw?m.hipw/H:.21;r.foot=m.foot?m.foot/H:.152;
+  if(m.span&&!m.sel)r.ua=clamp((m.span-.85*r.shw*H)/2/H-r.fa-r.hand,.12,.26);
+  r.span=m.span?m.span/H:(.85*r.shw+2*(r.ua+r.fa+r.hand));
+  return r;}
+const heightOf=p=>p==="me"?S.me.H:S.stat[S.sex][p];
+const ratiosOf=p=>p==="me"?meRatios():BASE;
+const labelOf=p=>p==="me"?"나":`${S.sex==="m"?"남":"여"} ${p}%`;
+
+// ---------- 자세 ----------
+// 몸통 t(수직 기준), 목 n, 어깨 sh·팔꿈치 el·고관절 hip·무릎 kn(해부학 각도). 뒤쪽 팔다리는 *2, null이면 앞쪽과 같음
+const P0={t:0,n:0,sh:5,el:10,hip:0,kn:0,sh2:null,el2:null,hip2:null,kn2:null};
+const PRE={
+  stand:{},
+  reachF:{t:8,sh:90,el:0,n:-5},
+  reachU:{t:-3,n:-25,sh:175,el:4},
+  pick:{t:80,n:-35,sh:80,el:5,hip:85,kn:15},
+  squat:{t:40,n:-25,sh:60,el:30,hip:120,kn:125},
+  kneel:{t:0,n:0,sh:10,el:20,hip:0,kn:95},
+  step:{t:5,sh:15,el:20,hip:70,kn:90,hip2:0,kn2:0,sh2:-10,el2:15},
+  floorSit:{t:5,n:5,sh:-30,el:10,hip:95,kn:0},
+  lie:{t:-90,n:12,sh:0,el:0,hip:0,kn:0}
+};
+PRE.halfKneel={t:5,sh:10,el:20,hip:85,kn:90,hip2:-5,kn2:95,sh2:10,el2:20};
+function setPose(p){S.pose=Object.assign({},P0,PRE[p]||{});}
+// 정지 동작도 서기 → 목표 자세 → 서기로 움직이며 보여줌(여러 단계를 거치는 동작은 중간 자세 포함)
+const SEQ={reachF:["stand","reachF"],reachU:["stand","reachU"],pick:["stand","pick"],squat:["stand","squat"],kneel:["stand","halfKneel","kneel"],
+  step:["stand","step"],floorSit:["stand","squat","floorSit"],lie:["stand","squat","floorSit","lie"]};
+const SEG=.9,HOLD=.8;
+const full=n=>{const q=Object.assign({},P0,PRE[n]||{});["sh","el","hip","kn"].forEach(k=>{if(q[k+"2"]==null)q[k+"2"]=q[k];});return q;};
+const seqPeriod=p=>2*(SEQ[p].length-1)*SEG+2*HOLD;
+function seqPose(p,f){const K=SEQ[p].map(full),n=K.length-1,T=seqPeriod(p);let u=f*T,a,b,k;
+  const ease=x=>x*x*(3-2*x);
+  if(u<n*SEG){const i=Math.min(n-1,Math.floor(u/SEG));a=K[i];b=K[i+1];k=ease((u-i*SEG)/SEG);}
+  else if((u-=n*SEG)<HOLD){a=b=K[n];k=0;}
+  else if((u-=HOLD)<n*SEG){const i=Math.min(n-1,Math.floor(u/SEG));a=K[n-i];b=K[n-i-1];k=ease((u-i*SEG)/SEG);}
+  else{a=b=K[0];k=0;}
+  const o={};Object.keys(P0).forEach(x=>o[x]=a[x]+(b[x]-a[x])*k);return o;}
+
+// ---------- 걷기·뛰기 ----------
+const gs=(f,c,w)=>{const d=((f-c+1.5)%1)-.5;return Math.exp(-(d/w)*(d/w));};
+const GAIT={
+  walk:{period:1.1,f:f=>({hip:10+22*Math.cos(2*Math.PI*f),kn:4+13*gs(f,.13,.07)+56*gs(f,.72,.1),sh:3-14*Math.cos(2*Math.PI*f),el:18}),t:4,n:-5,lift:()=>0},
+  run:{period:.72,f:f=>({hip:20+28*Math.cos(2*Math.PI*f),kn:22+22*gs(f,.12,.08)+88*gs(f,.7,.13),sh:5-38*Math.cos(2*Math.PI*f),el:88}),t:10,n:-10,
+    lift:f=>45*Math.max(0,Math.cos(4*Math.PI*(f-.42)))}};
+const curP=f=>S.anim.kind==="seq"?seqPose(S.anim.seq,f):gaitPose(S.anim.kind,f);
+const curLift=f=>S.anim.kind==="seq"?0:GAIT[S.anim.kind].lift(f);
+const curPeriod=()=>S.anim.kind==="seq"?seqPeriod(S.anim.seq):GAIT[S.anim.kind].period;
+// 발의 바닥 기울기(+는 발끝 들림): 뒤꿈치 닿기 → 발바닥 닿기 → 발끝 밀기 → 공중에서 발끝 들기
+const pwl=(pts,v)=>{for(let i=1;i<pts.length;i++)if(v<=pts[i][0]){const[a,x]=pts[i-1],[b,y]=pts[i];return x+(y-x)*(v-a)/(b-a);}return pts[pts.length-1][1];};
+const FOOT={walk:f=>pwl([[0,14],[.1,0],[.42,0],[.6,-28],[.72,5],[.9,10],[1,14]],f),run:f=>pwl([[0,5],[.12,0],[.3,-10],[.42,-32],[.6,10],[.85,12],[1,5]],f)};
+function gaitPose(kind,f){const G=GAIT[kind],a=G.f(f),b=G.f((f+.5)%1);
+  return{t:G.t,n:G.n,sh:a.sh,el:a.el,hip:a.hip,kn:a.kn,sh2:b.sh,el2:b.el,hip2:b.hip,kn2:b.kn,ft:FOOT[kind](f),ft2:FOOT[kind]((f+.5)%1)};}
+
+// ---------- 몸 계산 ----------
+function body(H,P,R,hx,lift,seat){
+  const L=k=>R[k]*H, side=s=>({sh:s?P.sh2??P.sh:P.sh,el:s?P.el2??P.el:P.el,hip:s?P.hip2??P.hip:P.hip,kn:s?P.kn2??P.kn:P.kn});
+  const Sh=add([0,0],up(P.t),L("trunk")), Hc=add(Sh,up(P.t+P.n),L("neck"));
+  const fw=[Math.cos(rad(P.t+P.n)),-Math.sin(rad(P.t+P.n))], eye=add(add(Hc,fw,.04*H),up(P.t+P.n),.005*H);
+  const limb=s=>{const q=side(s),fa=s?P.ft2:P.ft,ua=q.sh-P.t,E=add(Sh,dn(ua),L("ua")),F=add(E,dn(ua+q.el),L("fa")+GRIP*L("hand"));
+    const th=q.hip-P.t,K=add([0,0],dn(th),L("th")),sA=th-q.kn,A=add(K,dn(sA),L("sh"));
+    // 발목: 따로 정하지 않으면 발바닥을 바닥과 평행하게 둠(발목이 자동으로 꺾임).
+    // 발목 가동범위(굽힘 45°, 펌 50°)를 넘으면 뒤꿈치가 들리거나 발끝이 내려감
+    const ftA=fa!=null?fa:clamp(0,sA-50,sA+45);
+    const fr=rad(ftA),cs=Math.cos(fr),sn=Math.sin(fr),rot=(dx,dy)=>[A[0]+dx*cs-dy*sn,A[1]+dx*sn+dy*cs];
+    return{E,F,K,A,heel:rot(-.27*L("foot"),-L("ank")),toe:rot(.73*L("foot"),-L("ank")),q};};
+  const a=limb(0),b=limb(1);
+  // 바닥에 닿는 점: 가장 낮은 몸 부위를 바닥(0)에 맞춤
+  const pts=[[a.heel,0],[a.toe,0],[b.heel,0],[b.toe,0],[a.A,.03*H],[b.A,.03*H],[a.K,.035*H],[b.K,.035*H],[[0,0],.07*H],[Sh,.06*H],[Hc,L("head")],[a.E,.022*H],[b.E,.022*H],[a.F,.018*H],[b.F,.018*H]];
+  for(let k=.25;k<1;k+=.25)pts.push([lerp([0,0],Sh,k),.065*H]);
+  const minY=Math.min(...pts.map(([p,r])=>p[1]-r)), dy=seat!=null?seat+.055*H:-minY+(lift||0);
+  const T=p=>[p[0]+hx,p[1]+dy];
+  const B={H,R,P,hip:T([0,0]),Sh:T(Sh),Hc:T(Hc),eye:T(eye),n:{},f:{}};
+  ["E","F","K","A","heel","toe"].forEach(k=>{B.n[k]=T(a[k]);B.f[k]=T(b[k]);});
+  B.q=a.q;B.q2=b.q;
+  // 지지면: 바닥에 닿은 부위의 앞뒤 범위
+  let lo=Infinity,hi=-Infinity;
+  if(!(lift>1))pts.forEach(([p,r])=>{if(p[1]-r-minY<8){const x=p[0]+hx;lo=Math.min(lo,x);hi=Math.max(hi,x);}});
+  B.sup=[lo,hi];
+  // 무게중심
+  const seg=[[B.Hc,M.head],[lerp(B.hip,B.Sh,.5),M.trunk]];
+  [B.n,B.f].forEach(l=>{seg.push([lerp(B.Sh,l.E,.436),M.ua],[lerp(l.E,l.F,.45),M.fa+M.hand],[lerp(B.hip,l.K,.433),M.th],[lerp(l.K,l.A,.433),M.sh],[lerp(l.heel,l.toe,.45),M.foot]);});
+  const mt=seg.reduce((s,[,m])=>s+m,0);B.com=seg.reduce((s,[p,m])=>[s[0]+p[0]*m/mt,s[1]+p[1]*m/mt],[0,0]);
+  B.comOut=!isFinite(lo)?null:(B.com[0]<lo?lo-B.com[0]:B.com[0]>hi?B.com[0]-hi:0);
+  B.armL=(R.ua+R.fa+GRIP*R.hand)*H;
+  return B;}
+function env(B){const H=B.H;let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+  const put=(p,r)=>{x0=Math.min(x0,p[0]-r);x1=Math.max(x1,p[0]+r);y0=Math.min(y0,p[1]-r);y1=Math.max(y1,p[1]+r);};
+  const sg=(a,b,k)=>{for(let t=0;t<=1.0001;t+=.25)put(lerp(a,b,t),k*H);};
+  sg(B.hip,B.Sh,.06);sg(B.Sh,B.Hc,.025);put(B.Hc,B.R.head*H);
+  [B.n,B.f].forEach(l=>{sg(B.hip,l.K,.0425);sg(l.K,l.A,.03);sg(B.Sh,l.E,.025);sg(l.E,l.F,.021);put(l.heel,0);put(l.toe,0);});
+  return{x0,x1,y0:Math.max(0,y0),y1};}
+
+// ---------- 그리기 ----------
+const svg=$("cv");
+const el=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);(p||svg).appendChild(e);return e;};
+const Y=y=>-y;
+const line=(p,q,w,c,par,ex)=>el("line",Object.assign({x1:p[0],y1:Y(p[1]),x2:q[0],y2:Y(q[1]),stroke:c,"stroke-width":w,"stroke-linecap":"round"},ex||{}),par);
+let U=2.5,VB=[-900,-2450,2000,2610];
+const tick=(x,y,g,c)=>{const k=4*U;el("line",{x1:x-k,y1:Y(y)+k,x2:x+k,y2:Y(y)-k,stroke:c,"stroke-width":1.5*U},g);};
+const txt=(x,y,s,g,c,ex)=>{const t=el("text",Object.assign({x,y:Y(y),"font-size":12.5*U,"font-weight":500,fill:c,"font-family":"IBM Plex Sans KR, sans-serif",stroke:"var(--paper)","stroke-width":3.5*U,"paint-order":"stroke","stroke-linejoin":"round"},ex||{}),g);t.textContent=s;return t;};
+function drawGrid(){const g=el("g",{}),[vx,vy,vw,vh]=VB,top=-vy,x0=Math.floor(vx/100)*100,x1=vx+vw;
+  for(let x=x0;x<=x1;x+=100)el("line",{x1:x,y1:0,x2:x,y2:Y(top),stroke:x%500===0?"var(--grid2)":"var(--grid)","stroke-width":(x%500===0?1.1:.6)*U},g);
+  for(let y=0;y<=top;y+=100)el("line",{x1:vx,y1:Y(y),x2:x1,y2:Y(y),stroke:y%500===0?"var(--grid2)":"var(--grid)","stroke-width":(y%500===0?1.1:.6)*U},g);
+  for(let y=500;y<top;y+=500){const t=el("text",{x:vx+4*U,y:Y(y)-3*U,"font-size":11*U,fill:"var(--muted)","font-family":"IBM Plex Mono, monospace"},g);t.textContent=y;}
+  el("rect",{x:vx,y:0,width:vw,height:vy+vh,fill:"var(--grid2)",opacity:.35},g);
+  el("line",{x1:vx,y1:0,x2:x1,y2:0,stroke:"var(--fg)","stroke-width":1.8*U},g);
+  // 천장(2,400): 모든 장면 공통. 천장 위는 어둡게 처리
+  if(-vy>CEIL){el("rect",{x:vx,y:vy,width:vw,height:-vy-CEIL,fill:"var(--grid2)",opacity:.45},g);
+    el("line",{x1:vx,y1:Y(CEIL),x2:x1,y2:Y(CEIL),stroke:"var(--fg)","stroke-width":1.4*U,"stroke-dasharray":`${6*U} ${3*U}`},g);
+    const t=el("text",{x:x1-6*U,y:Y(CEIL)-4*U,"font-size":11*U,fill:"var(--muted)","text-anchor":"end","font-family":"IBM Plex Sans KR, sans-serif"},g);t.textContent="천장 2,400";}}
+function shape(B,par,col,d){const w=k=>k*B.H;
+  const limbs=l=>{line(B.hip,l.K,w(.085)+d,col,par);line(l.K,l.A,w(.06)+d,col,par);
+    el("path",{d:`M ${l.A[0]} ${Y(l.A[1])} L ${l.toe[0]} ${Y(l.toe[1])} L ${l.heel[0]} ${Y(l.heel[1])} Z`,fill:col,stroke:col,"stroke-width":Math.max(1,w(.012)+d),"stroke-linejoin":"round"},par);
+    line(B.Sh,l.E,w(.05)+d,col,par);line(l.E,l.F,w(.042)+d,col,par);};
+  return{far:()=>limbs(B.f),core:()=>{line(B.hip,B.Sh,w(.12)+d,col,par);line(B.Sh,B.Hc,w(.05)+d,col,par);el("circle",{cx:B.Hc[0],cy:Y(B.Hc[1]),r:Math.max(1,w(B.R.head)+d/2),fill:col},par);},near:()=>limbs(B.n)};}
+function drawBody(B,c,me,idx,noCom){const g=el("g",{});
+  if(me){const gf=el("g",{opacity:.25},g),gn=el("g",{opacity:.5},g);shape(B,gf,c,0).far();const s=shape(B,gn,c,0);s.core();s.near();}
+  else{const id="ol"+idx,t=.9*U,[mx,my,mw,mh]=VB,m=el("mask",{id,maskUnits:"userSpaceOnUse",x:mx,y:my,width:mw,height:mh},g);
+    const a=shape(B,m,"#fff",t),b=shape(B,m,"#000",-t);a.far();a.core();a.near();b.far();b.core();b.near();
+    el("rect",{x:mx,y:my,width:mw,height:mh,fill:c,mask:`url(#${id})`},g);}
+  const jc=me?"var(--paper)":c,ja=me?.9:.35;
+  [[B.hip,B.Sh],[B.Sh,B.Hc],[B.Sh,B.n.E],[B.n.E,B.n.F],[B.hip,B.n.K],[B.n.K,B.n.A]].forEach(([p,q])=>line(p,q,(me?1.2:1)*U,jc,g,{opacity:ja}));
+  [B.hip,B.Sh,B.n.E,B.n.K,B.n.A].forEach(p=>el("circle",{cx:p[0],cy:Y(p[1]),r:(me?3.2:2.2)*U,fill:me?c:"var(--paper)",stroke:jc,"stroke-width":1.2*U,opacity:me?.85:.6},g));
+  el("circle",{cx:B.eye[0],cy:Y(B.eye[1]),r:2.6*U,fill:me?"var(--paper)":c},g);
+  if(!me||noCom)return;
+  const yb=-12*U,bad=B.comOut>0,cc=bad?"var(--warn)":c,cx=B.com[0],cy=Y(B.com[1]),r=7*U;
+  if(isFinite(B.sup[0])){line([B.sup[0],yb],[Math.max(B.sup[1],B.sup[0]+8),yb],4.5*U,c,g,{opacity:.6,"stroke-linecap":"butt"});
+    const t=el("text",{x:B.sup[0]-6*U,y:Y(yb)+4*U,"font-size":11*U,fill:"var(--muted)","text-anchor":"end","font-family":"IBM Plex Sans KR, sans-serif"},g);t.textContent="지지면";}
+  el("line",{x1:cx,y1:cy,x2:cx,y2:Y(yb),stroke:cc,"stroke-width":(bad?1.6:1)*U,"stroke-dasharray":`${3.5*U} ${3*U}`,opacity:bad?1:.6},g);
+  el("circle",{cx,cy,r,fill:"var(--paper)",stroke:cc,"stroke-width":1.6*U},g);
+  el("path",{d:`M ${cx} ${cy-r} A ${r} ${r} 0 0 1 ${cx+r} ${cy} L ${cx} ${cy} Z M ${cx} ${cy+r} A ${r} ${r} 0 0 1 ${cx-r} ${cy} L ${cx} ${cy} Z`,fill:cc},g);}
+// 관절 가동범위 부채꼴: 각 관절에서 분절이 갈 수 있는 방향(절대각 a0~a1, dir 함수)
+function fan(g,J,r,a0,a1,dir,cur,lim,label){const n=40,pts=[];for(let i=0;i<=n;i++){const v=dir(a0+(a1-a0)*i/n);pts.push([J[0]+v[0]*r,J[1]+v[1]*r]);}
+  const at=cur>=lim[1]-1.5||(lim[0]<0&&cur<=lim[0]+1.5),col=at?"var(--warn)":"var(--accent)";
+  el("path",{d:`M ${J[0]} ${Y(J[1])} `+pts.map(p=>`L ${p[0]} ${Y(p[1])}`).join(" ")+" Z",fill:at?"var(--warn)":"var(--accent-soft)","fill-opacity":at?.14:.55,stroke:col,"stroke-width":.9*U,"stroke-opacity":.7},g);
+  const m=dir(a0+(a1-a0)*.5),lp=[J[0]+m[0]*(r+10*U),J[1]+m[1]*(r+10*U)];
+  txt(lp[0],lp[1]-4*U,`${label} ${Math.round(cur)}°`,g,col,{"font-size":11*U,"text-anchor":"middle","font-weight":600});}
+// only: 표시할 관절 목록(조정 중인 관절). 없으면 전부
+function drawRom(B,only){const g=el("g",{}),P=B.P,H=B.H,q=B.q,on=k=>!only||only.includes(k);
+  if(on("t"))fan(g,B.hip,.11*H,ROM.t[0],ROM.t[1],up,P.t,ROM.t,"몸통");
+  if(on("n"))fan(g,B.Sh,.07*H,P.t+ROM.n[0],P.t+ROM.n[1],up,P.n,ROM.n,"목");
+  if(on("sh"))fan(g,B.Sh,.13*H,ROM.sh[0]-P.t,ROM.sh[1]-P.t,dn,q.sh,ROM.sh,"어깨");
+  const ua=q.sh-P.t;if(on("el"))fan(g,B.n.E,.09*H,ua+ROM.el[0],ua+ROM.el[1],dn,q.el,ROM.el,"팔꿈치");
+  if(on("hip"))fan(g,B.hip,.15*H,ROM.hip[0]-P.t,ROM.hip[1]-P.t,dn,q.hip,ROM.hip,"고관절");
+  const th=q.hip-P.t;if(on("kn"))fan(g,B.n.K,.1*H,th-ROM.kn[1],th-ROM.kn[0],dn,q.kn,ROM.kn,"무릎");}
+function drawReach(B){const g=el("g",{}),P=B.P,r=B.armL,a0=ROM.sh[0]-P.t,a1=ROM.sh[1]-P.t,n=60,pts=[];
+  for(let i=0;i<=n;i++){const v=dn(a0+(a1-a0)*i/n);pts.push([B.Sh[0]+v[0]*r,B.Sh[1]+v[1]*r]);}
+  el("path",{d:`M ${B.Sh[0]} ${Y(B.Sh[1])} `+pts.map(p=>`L ${p[0]} ${Y(Math.max(0,p[1]))}`).join(" ")+" Z",fill:"none",stroke:"var(--pme)","stroke-width":1.1*U,"stroke-dasharray":`${5*U} ${3*U}`,"stroke-opacity":.6},g);
+  const top=dn(clamp(180,a0,a1));txt(B.Sh[0]+r*.72,B.Sh[1]+r*.72,`손 도달 반경 ${fmt(r)}`,g,"var(--pme)",{"font-size":11*U});}
+function drawDims(B,c){const e=env(B),g=el("g",{}),xc=e.x0-24*U;
+  let lv=[["팔꿈치",B.n.E[1]],["눈높이",B.eye[1]],["손",B.n.F[1]],["최고점",e.y1]];
+  lv.sort((a,b)=>a[1]-b[1]);lv=lv.filter(v=>!(v[0]==="최고점"&&Math.abs(v[1]-B.n.F[1])<40));
+  el("line",{x1:xc,y1:0,x2:xc,y2:Y(lv[lv.length-1][1]),stroke:c,"stroke-width":1.2*U},g);tick(xc,0,g,c);
+  let last=-1e9;lv.forEach(([nm,v])=>{tick(xc,v,g,c);const src=nm==="손"?B.n.F:nm==="팔꿈치"?B.n.E:nm==="눈높이"?B.eye:null;
+    if(src)el("line",{x1:xc+4*U,y1:Y(v),x2:src[0],y2:Y(v),stroke:c,"stroke-width":.7*U,"stroke-dasharray":`${1.5*U} ${2*U}`,opacity:.85},g);
+    const ly=Math.max(v,last+15*U);last=ly;txt(xc-6*U,ly-4*U,`${nm} ${fmt(v)}`,g,c,{"text-anchor":"end"});});
+  const yd=e.y1+26*U;[e.x0,e.x1].forEach(x=>el("line",{x1:x,y1:Y(e.y1+3*U),x2:x,y2:Y(yd+5*U),stroke:c,"stroke-width":.7*U},g));
+  el("line",{x1:e.x0-6*U,y1:Y(yd),x2:e.x1+6*U,y2:Y(yd),stroke:c,"stroke-width":1.2*U},g);tick(e.x0,yd,g,c);tick(e.x1,yd,g,c);
+  txt((e.x0+e.x1)/2,yd+4*U,`점유 깊이 ${fmt(e.x1-e.x0)}`,g,c,{"text-anchor":"middle"});}
+let REach={x0:0};
+function drawCycle(C){const g=el("g",{}),c="var(--accent)",e=C.box;
+  el("rect",{x:e.x0,y:Y(e.y1),width:e.x1-e.x0,height:e.y1,fill:"none",stroke:c,"stroke-width":1.5*U,"stroke-dasharray":`${8*U} ${3*U} ${2*U} ${3*U}`},g);
+  const yd=e.y1+58*U;[e.x0,e.x1].forEach(x=>el("line",{x1:x,y1:Y(e.y1+3*U),x2:x,y2:Y(yd+5*U),stroke:c,"stroke-width":.7*U},g));
+  el("line",{x1:e.x0-6*U,y1:Y(yd),x2:e.x1+6*U,y2:Y(yd),stroke:c,"stroke-width":1.3*U},g);tick(e.x0,yd,g,c);tick(e.x1,yd,g,c);
+  txt((e.x0+e.x1)/2,yd+4*U,`동작 점유 깊이 ${fmt(e.x1-e.x0)}${C.gait?"(제자리 기준)":""}`,g,c,{"text-anchor":"middle","font-weight":600});
+  // 걸음 길이: 발뒤꿈치가 닿는 순간 두 발목 사이
+  let s=C.step;if(C.gait&&S.anim.prints&&S.anim.prints.length>=2){const L=S.anim.prints;s=[L[L.length-2].x,L[L.length-1].x];}
+  if(s){const yy=-30*U;[s[0],s[1]].forEach(x=>el("line",{x1:x,y1:Y(0),x2:x,y2:Y(yy-5*U),stroke:c,"stroke-width":.7*U},g));
+    el("line",{x1:s[0],y1:Y(yy),x2:s[1],y2:Y(yy),stroke:c,"stroke-width":1.3*U},g);tick(s[0],yy,g,c);tick(s[1],yy,g,c);
+    txt((s[0]+s[1])/2,yy+4*U,`걸음 길이 ${fmt(Math.abs(s[1]-s[0]))}`,g,c,{"text-anchor":"middle","font-weight":600});}
+  if(C.clr){el("line",{x1:C.clr[0]-50,y1:Y(C.clr[1]),x2:C.clr[0]+50,y2:Y(C.clr[1]),stroke:c,"stroke-width":1*U,"stroke-dasharray":`${2*U} ${2*U}`},g);
+    txt(C.clr[0]+60,C.clr[1]-4*U,`발 최대 들림 ${fmt(C.clr[1])}`,g,c,{"font-size":11*U});}}
+// 발자국: 발이 바닥을 딛는 순간의 발목 위치
+const TRACK=[-900,1500];
+function drawPrints(){const L=S.anim.prints||[],g=el("g",{});L.forEach((q,i)=>{const op=.25+.6*(i+1)/L.length;
+  el("rect",{x:q.x-.04*S.me.H,y:-3*U,width:.15*S.me.H,height:6*U,rx:2*U,fill:q.side==="n"?"var(--pme)":"var(--muted)",opacity:op},g);});}
+// 걷기·뛰기 한 주기 표본
+function cycleOf(p){if(!S.anim)return null;const H=heightOf(p),R=ratiosOf(p),gait=S.anim.kind!=="seq";let box={x0:1e9,x1:-1e9,y1:0},step=null,clr=null,mx=0;
+  for(let i=0;i<48;i++){const f=i/48,B=body(H,curP(f),R,S.x,curLift(f)),e=env(B);
+    box.x0=Math.min(box.x0,e.x0);box.x1=Math.max(box.x1,e.x1);box.y1=Math.max(box.y1,e.y1);
+    if(gait&&i===0)step=[B.f.A[0],B.n.A[0]];
+    if(gait&&f>.55&&f<.9){const h=Math.min(B.n.toe[1],B.n.heel[1]);if(h>mx){mx=h;clr=[B.n.A[0],h];}}}
+  return{box,step,clr,gait};}
+
+let BODIES={},drag=null;
+// ---------- 확대·축소·이동 ----------
+// 기본 화면은 더미(또는 동작 범위)를 화면에 꽉 차게 맞춤. 치수선은 화면 밖으로 나갈 수 있음
+// V.z: 맞춤 대비 배율, V.ox/V.oy: 맞춤 중심에서 옮긴 거리(mm)
+const V={z:1,ox:0,oy:0,base:null};
+const CEIL=2400; // 이동 한계: 천장 높이
+let wantSize=true; // 장면·동작이 바뀔 때만 폰의 그림 창 높이를 내용 비율에 맞춤
+const isPhone=()=>window.innerWidth<=860;
+let manualH=null; // 손잡이로 직접 정한 그림 창 높이(두 번 누르면 자동으로 돌아감)
+function sizeStage(cw,ch,m,floor){const st=document.querySelector(".stage");if(!isPhone()){st.style.height="";return;}
+  if(manualH){st.style.height=manualH+"px";return;}
+  const rc=svg.getBoundingClientRect(),extra=st.getBoundingClientRect().height-rc.height,ih=window.innerHeight;
+  let h=(rc.width-2*m)*ch/cw+2*m+floor+extra;
+  const lo=ih*.24,hi=S.mode1==="measure"?ih*.42:ih*.6;h=Math.round(clamp(h,lo,hi));
+  if(Math.abs(st.getBoundingClientRect().height-h)>3)st.style.height=h+"px";}
+function fitBox(x0,x1,y0,y1){
+  const m=isPhone()?6:16, floor=isPhone()?34:40;
+  let cw=Math.max(x1-x0,300),ch=Math.max(y1-y0,400);
+  if(wantSize){wantSize=false;sizeStage(cw,ch,m,floor);}
+  const rc=svg.getBoundingClientRect();if(!rc.width||!rc.height)return;
+  const u=Math.max(cw/Math.max(60,rc.width-2*m),ch/Math.max(60,rc.height-2*m-floor));
+  // 남는 세로 공간은 위쪽으로 보내고 바닥선은 화면 아래 가까이 둠
+  V.base={cx:(x0+x1)/2,cy:y0-floor*u+rc.height*u/2,u,x0,x1,floor,y0};applyView(rc);}
+function applyView(rc){rc=rc||svg.getBoundingClientRect();if(!V.base||!rc.width)return;let u=V.base.u/V.z;U=u;
+  // 화면 이동 한계: 위는 천장(2400) 위 약간, 아래는 바닥 띠, 좌우는 내용에서 1.5m
+  {const zmin=V.base.u*Math.max(1,rc.height-V.base.floor-44)/(CEIL-Math.min(0,V.base.y0||0));if(V.z<zmin){V.z=zmin;u=V.base.u/V.z;U=u;}}
+  const hh=rc.height*u/2,hw=rc.width*u/2,top=CEIL+44*u,bot=Math.min(0,V.base.y0||0)-V.base.floor*u; // 천장선이 위쪽 버튼에 가리지 않도록 44px 여유
+  let cy=V.base.cy+V.oy;if(2*hh>=top-bot)cy=bot+hh;else cy=clamp(cy,bot+hh,top-hh);
+  let cx=V.base.cx+V.ox;const L=V.base.x0-1500,Rr=V.base.x1+1500;if(2*hw>=Rr-L)cx=(L+Rr)/2;else cx=clamp(cx,L+hw,Rr-hw);
+  V.ox=cx-V.base.cx;V.oy=cy-V.base.cy;
+  VB=[cx-hw,-(cy+hh),2*hw,2*hh];svg.setAttribute("viewBox",VB.join(" "));}
+function viewReset(){V.z=1;V.ox=0;V.oy=0;}
+addEventListener("resize",()=>{wantSize=true;});
+{const g=$("sGrip"),st=document.querySelector(".stage");let gd=null,lastT=0;
+  const setH=h=>{manualH=Math.round(clamp(h,innerHeight*.2,innerHeight*.82));st.style.height=manualH+"px";draw();};
+  g.addEventListener("pointerdown",e=>{const t=performance.now();if(t-lastT<300){manualH=null;wantSize=true;draw();lastT=0;return;}lastT=t;
+    gd={y:e.clientY,h:st.getBoundingClientRect().height};g.setPointerCapture(e.pointerId);e.preventDefault();});
+  g.addEventListener("pointermove",e=>{if(gd)setH(gd.h+e.clientY-gd.y);});
+  const up=()=>{gd=null;};g.addEventListener("pointerup",up);g.addEventListener("pointercancel",up);
+  g.addEventListener("keydown",e=>{if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();setH(st.getBoundingClientRect().height+(e.key==="ArrowDown"?24:-24));}});}
+const ptrs=new Map();let pinch=null,pan=null;
+function screenWorld(cx,cy){const rc=svg.getBoundingClientRect(),u=V.base.u/V.z;return{x:V.base.cx+V.ox+(cx-rc.left-rc.width/2)*u,y:V.base.cy+V.oy-(cy-rc.top-rc.height/2)*u};}
+function zoomAt(cx,cy,z){const w=screenWorld(cx,cy);V.z=clamp(z,.25,6);const rc=svg.getBoundingClientRect(),u=V.base.u/V.z;
+  V.ox=w.x-(cx-rc.left-rc.width/2)*u-V.base.cx;V.oy=w.y+(cy-rc.top-rc.height/2)*u-V.base.cy;}
+function startPinch(){const p=[...ptrs.values()];const d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y)||1,mx=(p[0].x+p[1].x)/2,my=(p[0].y+p[1].y)/2;
+  pinch={d0:d,z0:V.z,w0:screenWorld(mx,my)};pan=null;}
+function movePinch(){const p=[...ptrs.values()];const d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y)||1,mx=(p[0].x+p[1].x)/2,my=(p[0].y+p[1].y)/2;
+  V.z=clamp(pinch.z0*d/pinch.d0,.25,6);const rc=svg.getBoundingClientRect(),u=V.base.u/V.z;
+  V.ox=pinch.w0.x-(mx-rc.left-rc.width/2)*u-V.base.cx;V.oy=pinch.w0.y+(my-rc.top-rc.height/2)*u-V.base.cy;}
+svg.addEventListener("wheel",e=>{if(!V.base)return;e.preventDefault();zoomAt(e.clientX,e.clientY,V.z*Math.exp(-e.deltaY*.0015));draw();},{passive:false});
+let lastTap=0;
+function tapReset(e){const t=performance.now();if(t-lastTap<300){viewReset();draw();lastTap=0;}else lastTap=t;}
+$("vFit").onclick=()=>{viewReset();draw();};
+$("vIn").onclick=()=>{const rc=svg.getBoundingClientRect();zoomAt(rc.left+rc.width/2,rc.top+rc.height/2,V.z*1.4);draw();};
+$("vOut").onclick=()=>{const rc=svg.getBoundingClientRect();zoomAt(rc.left+rc.width/2,rc.top+rc.height/2,V.z/1.4);draw();};
+setTimeout(()=>{const h=$("zhint");if(h)h.hidden=true;},6000);
+
+function draw(){
+  while(svg.firstChild)svg.removeChild(svg.firstChild);
+  if(S.mode1==="measure"){drawMeasure();$("legend").innerHTML="<span>측정 화면: 더미가 측정 자세를 취하고 재는 치수를 강조합니다</span>";return;}
+  const P=S.anim?curP(S.anim.f):S.pose, lift=S.anim?curLift(S.anim.f):0;
+  const ps=[95,50,5].filter(p=>S.cmp[p]).concat(["me"]);BODIES={};
+  ps.forEach(p=>BODIES[p]=body(heightOf(p),P,ratiosOf(p),S.x,lift));
+  const me=BODIES.me, C0=S.anim?cycleOf("me"):null, C=S.lay.env?C0:null, gait=S.anim&&S.anim.kind!=="seq";
+  const ext=Object.values(BODIES).map(B=>{const e=env(B);return[e.x0,e.x1,e.y1];});
+  if(S.lay.reach){const r=me.armL;ext.push([me.Sh[0]-r,me.Sh[0]+r,me.Sh[1]+r]);REach={x0:me.Sh[0]-r};}else REach={x0:1e9};
+  if(C0)ext.push([C0.box.x0,C0.box.x1,C0.box.y1]);
+  // 걷기·뛰기는 몸이 앞으로 이동하므로 화면을 고정한 주행 구간으로 맞춤(확대·축소 흔들림 방지)
+  // 화면 맞춤: 정지 자세는 더미, 움직이는 동작은 동작 범위(걷기·뛰기는 몸을 따라감)
+  {let b;if(C0)b=[C0.box.x0,C0.box.x1,0,C0.box.y1];else{b=[1e9,-1e9,0,0];Object.values(BODIES).forEach(B=>{const e=env(B);b[0]=Math.min(b[0],e.x0);b[1]=Math.max(b[1],e.x1);b[3]=Math.max(b[3],e.y1);});}
+   if(!drag)fitBox(b[0],b[1],b[2],b[3]);else applyView();}
+  drawGrid();
+  if(S.lay.reach)drawReach(me);
+  ps.forEach((p,i)=>drawBody(BODIES[p],`var(--p${p})`,p==="me",i));
+  if(S.lay.rom)drawRom(me);else if(romOn)drawRom(me,romOn);
+  if(gait)drawPrints();
+  if(C)drawCycle(C);
+  if(S.lay.dim)drawDims(me,"var(--pme)");
+  if(!S.anim){const g=el("g",{});el("circle",{cx:me.com[0],cy:Y(me.com[1]),r:12*U,fill:"none",stroke:"var(--accent)","stroke-width":1.6*U,"stroke-dasharray":`${3*U} ${2*U}`,opacity:.85},g);[me.Hc,me.Sh,me.n.E,me.n.F,me.hip,me.n.K,me.n.A].forEach(p=>el("circle",{cx:p[0],cy:Y(p[1]),r:7*U,fill:"none",stroke:"var(--accent)","stroke-width":1.4*U,opacity:.7},g));}
+  $("legend").innerHTML=ps.map(p=>`<span><i style="background:var(--p${p})"></i>${labelOf(p)}</span>`).join("")+`<span>◐ 무게중심 · ▬ 지지면</span>`;
+  syncUI(P);table(ps,C0);}
+
+// ---------- 정면도·평면도(측면도와 나란히) ----------
+// 측면 자세의 관절 높이(y)와 앞뒤 위치(x)를 그대로 쓰고, 좌우 위치는 정면 치수(⑦ 어깨너비, ⑧ 엉덩이너비)로 정함
+// 보이는 쪽(오른쪽) 팔다리 = 정면도 왼쪽, 평면도 아래쪽
+// ---------- 측정표 ----------
+function table(ps,C){const rows=[],B=BODIES,hints=[];
+  const r=(n,fn,cls)=>rows.push({n,v:ps.map(p=>fn(B[p],p)),cls});
+  r("키",b=>({t:fmt(b.H)}));
+  r("눈높이",b=>({t:fmt(b.eye[1])}));
+  r("팔꿈치높이",b=>({t:fmt(b.n.E[1])}));
+  r("손 높이(쥐는 점)",b=>({t:fmt(b.n.F[1])}));
+  r("최고점 높이",b=>({t:fmt(env(b).y1)}));
+  r("점유 깊이(앞뒤)",b=>{const e=env(b);return{t:fmt(e.x1-e.x0)};});
+  r("팔 길이(어깨~쥐는 점)",b=>({t:fmt(b.armL)}));
+  r("선 자세 수직 도달 최대",b=>({t:fmt((b.R.ank+b.R.sh+b.R.th+b.R.trunk)*b.H+b.armL)}));
+  let first=true;const rel=(n,fn)=>{r(n,fn,"rel"+(first?" sep":""));first=false;};
+  if(S.anim&&S.anim.kind!=="seq"){const cs={};ps.forEach(p=>cs[p]=p==="me"&&C?C:cycleOf(p));
+    rel("걸음 길이",(b,p)=>({t:fmt(Math.abs(cs[p].step[1]-cs[p].step[0]))}));
+    rel("활보장(같은 발 두 걸음)",(b,p)=>({t:fmt(2*Math.abs(cs[p].step[1]-cs[p].step[0]))}));
+    rel("발 최대 들림 높이",(b,p)=>({t:cs[p].clr?fmt(cs[p].clr[1]):"—"}));
+    rel("이동 속도(m/s)",(b,p)=>({t:(Math.abs(cs[p].step[1]-cs[p].step[0])/(GAIT[S.anim.kind].period/2)/1000).toFixed(2)}));
+    rel("동작 점유 깊이(1주기)",(b,p)=>({t:fmt(cs[p].box.x1-cs[p].box.x0)}));
+    rel("동작 최고 높이(1주기)",(b,p)=>({t:fmt(cs[p].box.y1)}));
+    hints.push(S.anim.kind==="walk"?"걸음 길이는 복도 폭·횡단보도·계단 단너비, 발 들림 높이는 문턱 높이와 연결됩니다.":"뛸 때는 걸을 때보다 걸음이 길고 몸이 위아래로 움직여 더 넓고 높은 공간이 필요합니다.");}
+  else{if(S.anim){const cs={};ps.forEach(p=>cs[p]=p==="me"&&C?C:cycleOf(p));
+      rel("동작 점유 깊이(전체 동작)",(b,p)=>({t:fmt(cs[p].box.x1-cs[p].box.x0)}));rel("동작 최고 높이(전체 동작)",(b,p)=>({t:fmt(cs[p].box.y1)}));
+      hints.push("동작 점유 범위는 서 있다가 목표 자세까지 움직이는 동안 몸이 지나간 공간입니다. 이 동작을 하는 곳에 필요한 최소 공간이 됩니다.");}
+    rel("균형(무게중심)",b=>b.comOut==null?{t:"—"}:b.comOut>0?{t:`이탈 ${fmt(b.comOut)}`,c:"w"}:{t:"안정",c:"o"});}
+  const me=B.me,q=me.q,cur={t:me.P.t,n:me.P.n,sh:q.sh,el:q.el,hip:q.hip,kn:q.kn};
+  const lim=(k,v)=>v>=ROM[k][1]-1.5||(ROM[k][0]<0&&v<=ROM[k][0]+1.5);
+  const jr=Object.keys(ROM).map(k=>{const v=cur[k],[a,b]=ROM[k],at=lim(k,v);return`<span class="jt${at?" w":""}">${ROMNAME[k]} ${Math.round(v)}° <small>(${a}~${b})</small></span>`;}).join("");
+  const head=`<thead><tr><th>항목(mm)</th>${ps.map(p=>`<th style="color:var(--p${p})">${labelOf(p)}</th>`).join("")}</tr></thead>`;
+  const body=rows.map(x=>`<tr class="${x.cls||""}"><td>${x.n}</td>${x.v.map(v=>`<td class="${v.c||""}">${v.t}</td>`).join("")}</tr>`).join("");
+  $("out").innerHTML=head+"<tbody>"+body+"</tbody>";
+  if(Object.keys(ROM).some(k=>lim(k,cur[k])))hints.push("붉은 관절은 정상 가동범위 끝에 닿았습니다. 이 자세보다 더 굽히거나 펴려면 몸의 다른 부위가 함께 움직여야 합니다.");
+  $("hint").innerHTML=`<span class="joints">${jr}</span>`+hints.join(" ");}
+
+// ---------- 슬라이더 ----------
+const SL=[["t","몸통 기울기"],["n","목 굽힘"],["sh","어깨 굽힘"],["el","팔꿈치 굽힘"],["hip","고관절 굽힘"],["kn","무릎 굽힘"]];
+SL.forEach(([k,lab])=>{const d=document.createElement("div");d.className="sl";
+  d.innerHTML=`<label for="s_${k}">${lab} <small>${ROM[k][0]}~${ROM[k][1]}°</small></label><input type="range" id="s_${k}" min="${ROM[k][0]}" max="${ROM[k][1]}" step="1"><span class="v" id="v_${k}"></span>`;
+  $("sliders").appendChild(d);
+  d.querySelector("input").addEventListener("input",e=>{romShow(k==="t"?["t","hip"]:[k]);stopAnim(true);const v=+e.target.value;if(k==="t")setTrunk(v);else S.pose[k]=v;draw();});});
+let jSel="t";
+SL.forEach(([k,lab])=>{const b=document.createElement("button");b.textContent=lab.replace(/ (기울기|굽힘)$/,"");b.dataset.j=k;b.onclick=()=>{jSel=k;syncJ();};$("jsel").appendChild(b);});
+function syncJ(){SL.forEach(([k])=>$("s_"+k).parentNode.classList.toggle("on",k===jSel));document.querySelectorAll("#jsel button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.j===jSel));}
+syncJ();
+const DRAGJ={hand:"el",elbow:"sh",head:"n",sh:"t",knee:"hip",foot:"kn",hip:"kn"};
+// 조정 중인 관절의 가동범위만 잠시 표시
+const ROMJ={hand:["el"],elbow:["sh"],head:["n"],sh:["t","hip"],knee:["hip"],foot:["hip","kn"],hip:["hip","kn"]};
+let romOn=null,romTimer=0;
+function romShow(keys,hold){clearTimeout(romTimer);romOn=keys;if(!hold)romTimer=setTimeout(()=>{romOn=null;draw();},1200);}
+function setTrunk(v){const d=v-S.pose.t;S.pose.t=v;["hip","hip2"].forEach(k=>{if(S.pose[k]!=null)S.pose[k]=clamp(S.pose[k]+d,ROM.hip[0],ROM.hip[1]);});}
+function syncUI(P){SL.forEach(([k])=>{const v=Math.round(P[k]);$("s_"+k).value=v;$("v_"+k).textContent=v+"°";});
+  document.querySelectorAll("[data-p]").forEach(b=>b.setAttribute("aria-pressed",S.cur===b.dataset.p));
+  document.querySelectorAll("[data-cmp]").forEach(b=>b.setAttribute("aria-pressed",!!S.cmp[b.dataset.cmp]));
+  $("sexM").setAttribute("aria-pressed",S.sex==="m");$("sexF").setAttribute("aria-pressed",S.sex==="f");
+  $("animBar").hidden=!S.anim;if(S.anim){$("aPh").value=Math.round(S.anim.f*100);$("aPhV").textContent=Math.round(S.anim.f*100)+"%";$("aPlay").textContent=S.anim.play?"일시정지":"재생";}}
+
+// ---------- 애니메이션 ----------
+let raf=0,tPrev=0;
+function travel(){const a=S.anim;if(a.kind==="seq")return;
+  const B=body(S.me.H,curP(a.f),meRatios(),0,curLift(a.f)),gn=Math.min(B.n.heel[1],B.n.toe[1]),gf=Math.min(B.f.heel[1],B.f.toe[1]);
+  // 디딤발: 주기 앞 절반은 앞쪽 발, 뒤 절반은 뒤쪽 발(뒤꿈치가 닿는 순간 바뀜). 디딤발이 바닥에 있는 동안 미끄러지지 않게 몸을 옮김
+  const st=a.f<.5?"n":"f",ax=B[st].A[0],gst=st==="n"?gn:gf,air=a.kind==="run"&&gst>4;
+  let d=a.v||0;if(a.pst===st&&!air&&a.pax!=null)d=a.pax-ax;
+  if(a.pst&&a.pst!==st)a.need=true;
+  if(!air&&a.need){a.need=false;a.prints=(a.prints||[]).concat([{x:S.x+d+ax,side:st}]).slice(-8);}
+  S.x+=d;if(!air)a.v=d;a.pst=st;a.pax=air?null:ax;
+  if(S.x>TRACK[1]){S.x=TRACK[0];a.prints=[];}}
+function loop(t){if(!S.anim||!S.anim.play){raf=0;return;}const dt=tPrev?Math.min(.05,(t-tPrev)/1000):0;tPrev=t;
+  S.anim.f=(S.anim.f+dt/curPeriod())%1;travel();draw();raf=requestAnimationFrame(loop);}
+function startAnim(kind,seq){S.anim={kind,seq,f:0,play:true,prints:[]};if(kind!=="seq")S.x=TRACK[0];tPrev=0;if(!raf)raf=requestAnimationFrame(loop);}
+function stopAnim(keep){if(!S.anim)return;if(keep)S.pose=Object.assign({},P0,curP(S.anim.f));S.anim=null;S.cur=null;cancelAnimationFrame(raf);raf=0;}
+$("aPlay").onclick=()=>{if(!S.anim)return;S.anim.play=!S.anim.play;if(S.anim.play){tPrev=0;raf=requestAnimationFrame(loop);}draw();};
+$("aPh").addEventListener("input",e=>{if(!S.anim)return;S.anim.play=false;S.anim.f=+e.target.value/100%1;draw();});
+try{if(matchMedia("(prefers-reduced-motion: reduce)").matches)GAIT.reduce=true;}catch(e){}
+
+// ---------- 입력 ----------
+document.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{const p=b.dataset.p;stopAnim(false);S.cur=p;S.x=0;V.ox=V.oy=0;wantSize=true;
+  if(GAIT[p]&&p!=="reduce"){setPose("stand");startAnim(p);if(GAIT.reduce)S.anim.play=false;}
+  else if(SEQ[p]){setPose(p);startAnim("seq",p);if(GAIT.reduce){S.anim.play=false;S.anim.f=(SEQ[p].length-1)*SEG/seqPeriod(p);}}
+  else setPose(p);draw();});
+document.querySelectorAll("[data-cmp]").forEach(b=>b.onclick=()=>{S.cmp[b.dataset.cmp]=!S.cmp[b.dataset.cmp];draw();});
+$("sexM").onclick=()=>{S.sex="m";draw();};$("sexF").onclick=()=>{S.sex="f";draw();};
+["m","f"].forEach(s=>[5,50,95].forEach(p=>{const e=$(s+p);e.value=S.stat[s][p];e.addEventListener("input",()=>{const v=+e.value;if(v>1000&&v<2300){S.stat[s][p]=v;draw();}});}));
+[["lRom","rom"],["lReach","reach"],["lDim","dim"],["lEnv","env"]].forEach(([id,k])=>$(id).addEventListener("change",e=>{S.lay[k]=e.target.checked;draw();}));
+const ME=[["meH","H"],["meSit","sit"],["meSel","sel"],["meFh","fh"],["mePop","pop"],["meBpl","bpl"],["meShw","shw"],["meHipw","hipw"],["meSpan","span"],["meFoot","foot"]];
+function placeholders(){const H=S.me.H,r=BASE,est={sit:(.055+r.trunk+r.neck+r.head)*H,sel:(.055+r.trunk-r.ua)*H,fh:(r.fa+r.hand)*H,pop:(r.ank+r.sh-.04)*H,bpl:(r.th+.02)*H,shw:.259*H,hipw:.21*H,span:(.85*.259+2*(r.ua+r.fa+r.hand))*H,foot:.152*H};
+  ME.slice(1).forEach(([id,k])=>$(id).placeholder="약 "+Math.round(est[k]/10)*10);}
+function code(){const m=S.me;return"D2-"+[m.H,m.sit,m.sel,m.fh,m.pop,m.bpl,m.shw,m.hipw,m.span,m.foot].map(v=>v?Math.round(v):0).join("-");}
+// 원래 체형: 직접 입력한 치수를 따로 보관해 두었다가 50% 초기화 뒤에 되돌림
+let OWN=null;
+function setOwn(){OWN=Object.assign({},S.me);try{localStorage.setItem("ergoMeOwn",JSON.stringify(OWN));}catch(e){}syncOwn();}
+function syncOwn(){const b=$("restoreMe");if(b)b.disabled=!OWN||JSON.stringify(OWN)===JSON.stringify(S.me);}
+function saveMe(){$("dcode").textContent=code();try{localStorage.setItem("ergoMe",JSON.stringify(S.me));}catch(e){}}
+function loadMe(){try{const v=JSON.parse(localStorage.getItem("ergoMe")||"null");if(v&&v.H>1000)S.me=Object.assign(S.me,v);}catch(e){}
+  try{const o=JSON.parse(localStorage.getItem("ergoMeOwn")||"null");if(o&&o.H>1000)OWN=o;}catch(e){}
+  ME.forEach(([id,k])=>{$(id).value=S.me[k]||"";});placeholders();saveMe();syncOwn();}
+ME.forEach(([id,k])=>$(id).addEventListener("input",e=>{const v=+e.target.value;
+  if(k==="H"){if(v>1000&&v<2300){S.me.H=v;placeholders();}else return;}else S.me[k]=(v>100&&v<2300)?v:null;saveMe();setOwn();if(S.mode1==="measure")buildMCard();draw();}));
+$("resetMe").onclick=()=>{if(!OWN)setOwn();S.me={H:S.stat[S.sex][50],sit:null,sel:null,fh:null,pop:null,bpl:null,shw:null,hipw:null,span:null,foot:null};ME.forEach(([id,k])=>$(id).value=S.me[k]||"");placeholders();saveMe();syncOwn();draw();};
+$("restoreMe").onclick=()=>{if(!OWN)return;S.me=Object.assign({},OWN);ME.forEach(([id,k])=>$(id).value=S.me[k]||"");placeholders();saveMe();syncOwn();draw();};
+$("copyCode").onclick=()=>{const t=code(),b=$("copyCode");
+  const sel=()=>{const r=document.createRange();r.selectNodeContents($("dcode"));const s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent="선택됨 · Ctrl+C";};
+  try{navigator.clipboard.writeText(t).then(()=>{b.textContent="복사됨";setTimeout(()=>b.textContent="복사",1500);},sel);}catch(e){sel();}};
+
+// ---------- 끌기 ----------
+function toWorld(e){const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const m=svg.getScreenCTM();if(!m)return null;const q=pt.matrixTransform(m.inverse());return{x:q.x,y:-q.y};}
+function twoLink(L1,L2,D){const Dc=Math.max(D,Math.abs(L1-L2)+1);return{a:deg(Math.acos(clamp((L1*L1+Dc*Dc-L2*L2)/(2*L1*Dc),-1,1))),b:deg(Math.acos(clamp((L1*L1+L2*L2-Dc*Dc)/(2*L1*L2),-1,1)))};}
+function legIK(H,R,hip,a){const L1=R.th*H,L2=R.sh*H,dx=a[0]-hip[0],dy=a[1]-hip[1],D=Math.hypot(dx,dy),phi=deg(Math.atan2(dx,-dy));
+  if(D>=L1+L2-.5)return{th:phi,kn:0};const k=twoLink(L1,L2,D);return{th:phi+k.a,kn:180-k.b};}
+const ang=(o,w,useUp)=>useUp?deg(Math.atan2(w.x-o[0],w.y-o[1])):deg(Math.atan2(w.x-o[0],-(w.y-o[1])));
+svg.addEventListener("pointerdown",e=>{ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});svg.setPointerCapture(e.pointerId);
+  if(ptrs.size===2){if(drag){drag=null;svg.classList.remove("grab");}startPinch();return;}
+  if(ptrs.size>2)return;
+  if(S.mode1==="measure"){pan={x:e.clientX,y:e.clientY,ox:V.ox,oy:V.oy};tapReset(e);return;}
+  const w=toWorld(e);if(!w)return;const B=BODIES.me;if(!B)return;
+  const hd=p=>Math.hypot(w.x-p[0],w.y-p[1]),near=(p,k)=>hd(p)<Math.max(k||60,16*U);
+  const nearCom=hd(B.com)<Math.max(55,13*U);
+  const hit=nearCom||near(B.n.F)||near(B.n.E)||near(B.n.A,80)||near(B.n.toe,70)||near(B.n.heel,70)||near(B.n.K)||near(B.Sh)||hd(B.Hc)<Math.max(B.R.head*B.H+40,22*U)||near(B.hip,110);
+  if(!hit){pan={x:e.clientX,y:e.clientY,ox:V.ox,oy:V.oy};tapReset(e);return;}
+  if(S.anim)stopAnim(true);
+  const P=S.pose;
+  if(nearCom)drag={k:"hip",com:true,dx:w.x-B.hip[0],dy:w.y-B.hip[1],ax:B.n.A[0]-B.hip[0],ax2:B.f.A[0]-B.hip[0],y0:B.hip[1]};
+  else if(near(B.n.F))drag={k:"hand"};
+  else if(near(B.n.E))drag={k:"elbow"};
+  else if(near(B.n.A,80)||near(B.n.toe,70)||near(B.n.heel,70)){drag={k:"foot"};if(P.hip2==null){P.hip2=P.hip;P.kn2=P.kn;}}
+  else if(near(B.n.K))drag={k:"knee"};
+  else if(near(B.Sh))drag={k:"sh"};
+  else if(hd(B.Hc)<Math.max(B.R.head*B.H+40,22*U))drag={k:"head"};
+  else if(near(B.hip,110))drag={k:"hip",dx:w.x-B.hip[0],dy:w.y-B.hip[1],ax:B.n.A[0]-B.hip[0],ax2:B.f.A[0]-B.hip[0],y0:B.hip[1]};
+  else return;
+  S.cur=null;if(ROMJ[drag.k])romShow(ROMJ[drag.k],true);if(DRAGJ[drag.k]){jSel=DRAGJ[drag.k];syncJ();}svg.classList.add("grab");draw();});
+svg.addEventListener("pointermove",e=>{if(ptrs.has(e.pointerId))ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinch&&ptrs.size>=2){movePinch();draw();return;}
+  if(pan){const u=V.base.u/V.z;V.ox=pan.ox-(e.clientX-pan.x)*u;V.oy=pan.oy+(e.clientY-pan.y)*u;draw();return;}
+  if(!drag)return;const w=toWorld(e);if(!w)return;const B=BODIES.me,P=S.pose,H=B.H,R=B.R,q=B.q;
+  const cl=(k,v)=>clamp(Math.round(v),ROM[k][0],ROM[k][1]);
+  if(drag.k==="hand"){const ua=q.sh-P.t;P.el=cl("el",ang(B.n.E,w)-ua);}
+  else if(drag.k==="elbow"){P.sh=cl("sh",ang(B.Sh,w)+P.t);}
+  else if(drag.k==="head"){P.n=cl("n",ang(B.Sh,w,true)-P.t);}
+  else if(drag.k==="sh"){setTrunk(cl("t",ang(B.hip,w,true)));}
+  else if(drag.k==="knee"){P.hip=cl("hip",ang(B.hip,w)+P.t);}
+  else if(drag.k==="foot"){const r=legIK(H,R,B.hip,[w.x,Math.max(w.y,R.ank*H)]);P.hip=cl("hip",r.th+P.t);P.kn=cl("kn",r.kn);}
+  else if(drag.k==="hip"){const hx=w.x-drag.dx,hy=Math.max(R.ank*H+.1*H,w.y-drag.dy);S.x=Math.round(hx-(B.hip[0]-S.x));
+    // 누운 자세 등 몸통이 많이 기울면 좌우 이동만 함
+    if(Math.abs(P.t)>60){draw();return;}
+    // 위아래로 끌면 발을 바닥에 둔 채 무릎을 굽힘(앉기·쪼그리기)
+    const legs=[["hip","kn",drag.ax],["hip2","kn2",drag.ax2]];
+    legs.forEach(([kh,kk,ax])=>{if(kh==="hip2"&&P.hip2==null)return;const r=legIK(H,R,[0,hy],[ax,R.ank*H]);P[kh]=cl("hip",r.th+P.t);P[kk]=cl("kn",r.kn);});}
+  draw();});
+const end=e=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(ptrs.size===0)pan=null;
+  if(!drag)return;romShow(romOn||[]);drag=null;svg.classList.remove("grab");draw();};
+svg.addEventListener("pointerup",end);svg.addEventListener("pointercancel",end);
+
+// ---------- 측정 탭 ----------
+// 10개 치수를 한 항목씩 안내. 그림은 더미가 그 치수를 재는 자세를 취하고 치수선을 강조
+const MEAS=[
+ {k:"H",name:"키",view:"side",pose:"stand",ref:"벽",who:"신발을 벗고 벽에 발뒤꿈치·엉덩이·등·뒤통수를 붙이고 정면을 봅니다.",doer:"머리 위에 책을 수평으로 눌러 대고 책 아랫면 높이를 벽에 표시한 뒤, 바닥에서 표시까지 잽니다.",tool:"줄자, 책, 연필",use:"문·천장 높이 여유"},
+ {k:"sit",name:"앉은키",view:"side",pose:"msit",seat:true,ref:"벽",who:"딱딱하고 평평한 의자에 벽을 등지고 앉아 엉덩이와 등을 벽에 붙이고 바르게 앉습니다.",doer:"머리 위에 책을 수평으로 대어 벽에 표시하고, 좌면에서 표시까지 잽니다(바닥~표시에서 좌면 높이를 빼도 됩니다).",tool:"줄자, 책, 연필",use:"등받이·칸막이 높이"},
+ {k:"sel",name:"앉은 팔꿈치높이",view:"side",pose:"melb",seat:true,who:"바르게 앉아 위팔을 몸통에 붙이고 팔꿈치를 90°로 굽힙니다. 어깨에 힘을 뺍니다.",doer:"좌면에 자를 수직으로 세우고 좌면에서 팔꿈치 아랫면까지 잽니다.",tool:"자 또는 줄자",use:"책상 높이 = 좌면 높이 + 앉은 팔꿈치높이"},
+ {k:"fh",name:"팔꿈치~손끝 길이",view:"side",pose:"melb",seat:true,desk:true,who:"책상 모서리에 팔꿈치 끝을 맞추고 아래팔과 손을 책상 위에 곧게 폅니다.",doer:"책상 모서리에서 가운뎃손가락 끝까지 잽니다.",tool:"줄자",use:"책상 깊이, 손 도달 거리"},
+ {k:"pop",name:"오금높이",view:"side",pose:"msit",seat:true,who:"무릎을 90°로 굽혀 앉고 발바닥 전체를 바닥에 붙입니다. 발이 뜨면 발밑에 책을 받칩니다.",doer:"바닥(또는 받친 책 윗면)에서 무릎 바로 뒤 허벅지 아랫면까지 줄자를 세워 잽니다.",tool:"줄자, 책",use:"의자 좌면 높이"},
+ {k:"bpl",name:"엉덩이~오금 길이",view:"side",pose:"msit",seat:true,ref:"벽",who:"엉덩이를 벽에 붙이고 무릎을 90°로 굽혀 앉습니다.",doer:"무릎 뒤 오목한 곳(오금)에 책을 수직으로 대고 벽에서 책까지 잽니다.",tool:"줄자, 책",use:"의자 좌면 깊이"},
+ {k:"shw",name:"어깨너비",view:"front",pose:"stand",who:"팔을 자연스럽게 내리고 바르게 섭니다.",doer:"양쪽 어깨 바깥, 가장 넓은 곳에 책을 수직으로 하나씩 대고 두 책 사이를 잽니다.",tool:"줄자, 책 2권",use:"복도·통로 폭, 좌석 간격, 두 사람 교행"},
+ {k:"hipw",name:"앉은 엉덩이너비",view:"front",pose:"stand",opt:true,who:"무릎을 모으고 바르게 앉습니다.",doer:"엉덩이 양옆 가장 넓은 곳에 책을 수직으로 대고 두 책 사이를 잽니다.",tool:"줄자, 책 2권",use:"의자 좌면 폭, 소파 1인 폭"},
+ {k:"span",name:"양팔 너비",view:"front",pose:"tpose",ref:"벽",who:"벽에 등을 대고 양팔을 어깨높이로 옆으로 쭉 폅니다.",doer:"양쪽 가운뎃손가락 끝 위치를 벽에 표시하고 그 사이를 잽니다.",tool:"줄자, 연필",use:"선반·수납 도달 폭"},
+ {k:"foot",name:"발 길이",view:"side",pose:"stand",ref:"벽",who:"종이 위에 서서 발뒤꿈치를 벽에 붙입니다.",doer:"가장 긴 발가락 끝에 책을 수직으로 대고 벽에서 책까지 잽니다.",tool:"줄자, 책, 종이",use:"계단 단너비, 발판, 발자국"}];
+const CIRC="①②③④⑤⑥⑦⑧⑨⑩";
+PRE.msit={t:0,n:0,sh:5,el:15,hip:90,kn:90};
+PRE.melb={t:0,n:0,sh:0,el:90,hip:90,kn:90};
+S.mode1="measure";S.mi=0;
+function estOf(k){const H=S.me.H,r=meRatios();return{H,sit:(.055+r.trunk+r.neck+r.head)*H,sel:(.055+r.trunk-r.ua)*H,fh:(r.fa+r.hand)*H,pop:(r.ank+r.sh-.04)*H,bpl:(r.th+.02)*H,
+  shw:r.shw*H,hipw:r.hipw*H,span:r.span*H,foot:r.foot*H}[k];}
+// 강조 치수선(측정 화면용)
+function mdim(g,a,b,off,label,vertical){const c="var(--accent)";let p=a.slice(),q=b.slice();
+  if(vertical){const x=a[0]+off;el("line",{x1:a[0],y1:Y(a[1]),x2:x+(off>0?5:-5)*U,y2:Y(a[1]),stroke:c,"stroke-width":.8*U},g);el("line",{x1:b[0],y1:Y(b[1]),x2:x+(off>0?5:-5)*U,y2:Y(b[1]),stroke:c,"stroke-width":.8*U},g);p=[x,a[1]];q=[x,b[1]];}
+  else{const y=a[1]+off;el("line",{x1:a[0],y1:Y(a[1]),x2:a[0],y2:Y(y+(off>0?5:-5)*U),stroke:c,"stroke-width":.8*U},g);el("line",{x1:b[0],y1:Y(b[1]),x2:b[0],y2:Y(y+(off>0?5:-5)*U),stroke:c,"stroke-width":.8*U},g);p=[a[0],y];q=[b[0],y];}
+  el("line",{x1:p[0],y1:Y(p[1]),x2:q[0],y2:Y(q[1]),stroke:c,"stroke-width":2.2*U},g);
+  [p,q].forEach(o=>{const k=5*U;el("line",{x1:o[0]-k,y1:Y(o[1])+k,x2:o[0]+k,y2:Y(o[1])-k,stroke:c,"stroke-width":2*U},g);});
+  const m=[(p[0]+q[0])/2,(p[1]+q[1])/2];
+  if(vertical)txt(m[0]+(off>0?8:-8)*U,m[1],label,g,c,{"font-size":14*U,"font-weight":700,"text-anchor":off>0?"start":"end",dy:5*U});
+  else txt(m[0],m[1]+(off>0?6:-16)*U,label,g,c,{"font-size":14*U,"font-weight":700,"text-anchor":"middle"});}
+const book=(g,x0,y0,x1,y1)=>el("rect",{x:Math.min(x0,x1),y:Y(Math.max(y0,y1)),width:Math.abs(x1-x0),height:Math.abs(y1-y0),rx:U,fill:"var(--furn-fill,#e8e1d6)",stroke:"var(--furn,#8a7a66)","stroke-width":1.2*U},g);
+const wall=(g,x,h)=>{el("rect",{x:x-60,y:Y(h),width:60,height:h,fill:"var(--grid2)",opacity:.7},g);el("line",{x1:x,y1:0,x2:x,y2:Y(h),stroke:"var(--fg)","stroke-width":1.6*U},g);};
+// 정면 더미
+function frontGeo(H,R,tpose){const shY=(R.ank+R.sh+R.th+R.trunk)*H,hipY=(R.ank+R.sh+R.th)*H,headC=shY+R.neck*H,arm=(R.ua+R.fa+R.hand)*H,sw=R.shw*H,hw=R.hipw*H;
+  return{shY,hipY,headC,headTop:headC+R.head*H,arm,sw,hw,span:R.span*H,tpose};}
+function drawFront(g,G,c){const H=S.me.H,f=el("g",{opacity:.5},g),w=k=>k*H;
+  [[-1],[1]].forEach(([s])=>{line([s*G.hw*.26,G.hipY-.02*H],[s*G.hw*.22,.045*H],w(.085),c,f);el("ellipse",{cx:s*G.hw*.24,cy:Y(.02*H),rx:.045*H,ry:.02*H,fill:c},f);});
+  el("path",{d:`M ${-G.sw/2+.02*H} ${Y(G.shY+.01*H)} L ${G.sw/2-.02*H} ${Y(G.shY+.01*H)} Q ${G.sw/2} ${Y(G.shY)} ${G.sw/2} ${Y(G.shY-.04*H)} L ${G.hw/2} ${Y(G.hipY-.04*H)} L ${-G.hw/2} ${Y(G.hipY-.04*H)} L ${-G.sw/2} ${Y(G.shY-.04*H)} Q ${-G.sw/2} ${Y(G.shY)} ${-G.sw/2+.02*H} ${Y(G.shY+.01*H)} Z`,fill:c},f);
+  line([0,G.shY],[0,G.headC],w(.05),c,f);el("ellipse",{cx:0,cy:Y(G.headC),rx:.048*H,ry:R_HEAD*H,fill:c},f);
+  const ax=G.sw/2-.03*H;[-1,1].forEach(s=>{if(G.tpose)line([s*ax,G.shY-.02*H],[s*G.span/2,G.shY-.02*H],w(.045),c,f);else line([s*ax,G.shY-.03*H],[s*(ax+.025*H),G.shY-.03*H-G.arm],w(.045),c,f);});}
+let R_HEAD=.062;
+// 치수선 글자: 입력값, 없으면 추정값(앞에 "약")
+const val=k=>S.me[k]||Math.round(estOf(k)/10)*10;
+function drawMeasure(){const it=MEAS[S.mi],H=S.me.H,R=meRatios(),g=el("g",{});R_HEAD=R.head;BODIES={};
+  if(it.view==="front"){const G=frontGeo(H,R,it.pose==="tpose");
+    const x0=it.pose==="tpose"?-G.span/2:-G.sw/2-.06*H,x1=-x0;
+    if(!drag)fitBox(x0-.04*H,x1+.04*H,0,G.headTop+.05*H);drawGrid();
+    drawFront(g,G,"var(--pme)");
+    if(it.k==="shw"){book(g,-G.sw/2-25,G.shY-.13*H,-G.sw/2,G.shY+.03*H);book(g,G.sw/2,G.shY-.13*H,G.sw/2+25,G.shY+.03*H);
+      mdim(g,[-G.sw/2,G.shY-.04*H],[G.sw/2,G.shY-.04*H],-.2*H,`${CIRC[6]} 어깨너비 ${fmt(val("shw"))}`);}
+    if(it.k==="hipw"){book(g,-G.hw/2-25,G.hipY-.14*H,-G.hw/2,G.hipY);book(g,G.hw/2,G.hipY-.14*H,G.hw/2+25,G.hipY);
+      mdim(g,[-G.hw/2,G.hipY-.14*H],[G.hw/2,G.hipY-.14*H],-.06*H,`${CIRC[7]} 엉덩이너비 ${fmt(val("hipw"))} (앉아서 잼)`);}
+    if(it.k==="span")mdim(g,[-G.span/2,G.shY-.02*H],[G.span/2,G.shY-.02*H],.2*H,`${CIRC[8]} 양팔 너비 ${fmt(val("span"))}`);
+    return;}
+  const P=Object.assign({},P0,PRE[it.pose]),seatH=it.seat?(R.sh+R.ank-.055)*H:null,B=body(H,P,R,0,0,seatH),e=env(B);
+  let bx0=e.x0,bx1=e.x1;if(it.ref)bx0=Math.min(bx0,B.hip[0]-.12*H);if(it.desk)bx1=Math.max(bx1,B.n.E[0]+(R.fa+R.hand)*H+.12*H);if(it.k==="foot")bx1+=.05*H;if(it.k==="pop")bx1=Math.max(bx1,B.n.K[0]+.42*H);if(it.k==="H"||it.k==="sit"||it.k==="sel")bx0-=.2*H;
+  if(!drag)fitBox(bx0-.06*H,bx1+.06*H,0,e.y1+.04*H);drawGrid();
+  const hipBack=B.hip[0]-.07*H,backX=it.k==="foot"?B.n.heel[0]:hipBack;
+  if(it.ref)wall(g,backX,e.y1+.08*H);
+  if(seatH){book(g,hipBack-.02*H,seatH-40,B.hip[0]+.13*H,seatH);[hipBack,B.hip[0]+.11*H].forEach(x=>el("line",{x1:x,y1:Y(seatH-40),x2:x,y2:0,stroke:"var(--furn,#8a7a66)","stroke-width":2*U},g));}
+  const tip=add(B.n.E,dn(B.q.sh-P.t+B.q.el),(R.fa+R.hand)*H);
+  if(it.desk){book(g,B.n.E[0]-.02*H,B.n.E[1]-.022*H-30,tip[0]+.1*H,B.n.E[1]-.022*H);}
+  drawBody(B,"var(--pme)",true,0,true);
+  if(it.desk||it.k==="sel")line(B.n.F,tip,.02*H,"var(--pme)",g,{opacity:.45});
+  const top=B.Hc[1]+R.head*H,c=CIRC[S.mi];
+  if(it.k==="H"){book(g,backX,top,B.Hc[0]+.08*H,top+25);mdim(g,[backX,0],[backX,top],-.08*H,`${c} 키 ${fmt(H)}`,true);}
+  if(it.k==="sit"){book(g,backX,top,B.Hc[0]+.08*H,top+25);mdim(g,[backX,seatH],[backX,top],-.08*H,`${c} 앉은키 ${fmt(val("sit"))}`,true);}
+  if(it.k==="sel"){const eb=B.n.E[1]-.022*H;mdim(g,[B.n.E[0],seatH],[B.n.E[0],eb],(hipBack-.05*H)-B.n.E[0],`${c} ${fmt(val("sel"))}`,true);}
+  if(it.k==="fh"){const y=B.n.E[1];mdim(g,[B.n.E[0]-.022*H,y],[tip[0],y],.09*H,`${c} 팔꿈치~손끝 ${fmt(val("fh"))}`);}
+  if(it.k==="pop"){const pp=[B.n.K[0]-.05*H,B.n.K[1]-.0425*H];el("circle",{cx:pp[0],cy:Y(pp[1]),r:4*U,fill:"var(--accent)"},g);mdim(g,[pp[0],0],pp,.16*H,`${c} 오금높이 ${fmt(val("pop"))}`,true);}
+  if(it.k==="bpl"){const pp=[B.n.K[0]-.05*H,B.n.K[1]-.0425*H];book(g,pp[0],0,pp[0]+25,pp[1]+.02*H);mdim(g,[backX,B.n.K[1]],[pp[0],B.n.K[1]],.11*H,`${c} 엉덩이~오금 ${fmt(val("bpl"))}`);}
+  if(it.k==="foot"){const toe=B.n.toe;book(g,toe[0],0,toe[0]+25,.07*H);mdim(g,[backX,.02*H],[toe[0],.02*H],.1*H,`${c} 발 길이 ${fmt(val("foot"))}`);}}
+function buildMCard(){const it=MEAS[S.mi],v=S.me[it.k];
+  $("mchips").innerHTML=MEAS.map((m,i)=>`<button data-mi="${i}" class="${S.me[m.k]?"done":""}" aria-pressed="${i===S.mi}" title="${m.name}">${CIRC[i]}</button>`).join("");
+  $("mchips").querySelectorAll("button").forEach(b=>b.onclick=()=>{S.mi=+b.dataset.mi;wantSize=true;buildMCard();draw();});
+  $("mTitle").textContent=`${CIRC[S.mi]} ${it.name}`;$("mSub").textContent=`${it.view==="front"?"정면":"측면"} · ${it.k==="hipw"||it.seat?"앉은 자세":"선 자세"}`;
+  $("mWho").textContent=it.who;$("mDoer").textContent=it.doer;$("mTool").textContent=`도구: ${it.tool} · 설계 연결: ${it.use}`;
+  $("mVal").value=v||"";$("mVal").placeholder="약 "+Math.round(estOf(it.k)/10)*10;
+  const n=MEAS.filter(m=>S.me[m.k]).length;$("mProg").textContent=`${n}/10 입력`;
+  const notes=[];if(!v&&it.k!=="H")notes.push(`비워 두면 키 비율로 약 ${fmt(Math.round(estOf(it.k)/10)*10)}mm로 추정합니다.`);
+  if(it.opt)notes.push("원하지 않으면 비워 두어도 됩니다.");
+  if(it.k==="span"&&S.me.span){const d=S.me.span-S.me.H;if(Math.abs(d)>.06*S.me.H)notes.push(`양팔 너비가 키와 ${fmt(Math.abs(d))}mm 차이 납니다. 보통 키와 비슷하므로 ①과 ⑨를 다시 재 보십시오.`);else notes.push("양팔 너비가 키와 비슷합니다. 측정이 잘 되었습니다.");}
+  $("mNote").textContent=notes.join(" ");
+  $("mPrev").disabled=S.mi===0;$("mNext").textContent=S.mi===9?"완료 → 동작":"다음";}
+function setMode(m){S.mode1=m;document.body.classList.toggle("m-measure",m==="measure");document.body.classList.toggle("m-move",m!=="measure");
+  document.querySelectorAll("[data-mode]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.mode===m));
+  try{localStorage.setItem("ergoMode",m);}catch(e){}
+  if(m==="measure"){stopAnim(false);buildMCard();}else{S.cur=S.cur||"stand";}
+  wantSize=true;viewReset();draw();}
+document.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+$("mPrev").onclick=()=>{if(S.mi>0){S.mi--;wantSize=true;buildMCard();draw();}};
+$("mNext").onclick=()=>{if(S.mi<9){S.mi++;wantSize=true;buildMCard();draw();}else setMode("move");};
+$("mVal").addEventListener("input",e=>{const it=MEAS[S.mi],v=+e.target.value,id=ME.find(x=>x[1]===it.k)[0];
+  if(it.k==="H"){if(!(v>1000&&v<2300))return;S.me.H=v;}else S.me[it.k]=(v>100&&v<2300)?v:null;
+  $(id).value=S.me[it.k]||"";placeholders();saveMe();setOwn();buildMCard();draw();});
+$("mVal").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("mNext").click();setTimeout(()=>$("mVal").focus(),0);}});
+
+loadMe();setPose("stand");S.cur="stand";
+{let m="measure";try{m=localStorage.getItem("ergoMode")||"measure";}catch(e){}setMode(m==="move"?"move":"measure");}
+try{new ResizeObserver(()=>{if(!drag)draw();}).observe(svg);}catch(e){addEventListener("resize",()=>draw());}
+})();
+</script>
+
+<script>if("serviceWorker" in navigator)navigator.serviceWorker.register("../sw.js",{scope:"../"}).catch(()=>{});</script>
+</html>

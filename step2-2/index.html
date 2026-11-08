@@ -1,0 +1,1297 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../icons/icon-192.png">
+<meta name="theme-color" content="#22333F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Step2-2 화장실(용변·세면·목욕·샤워)</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* 레이아웃: 좌측 1/10 모눈 입면 캔버스(한 화면 고정) + 우측 조작 패널(독립 스크롤), 폰에서는 캔버스 상단 고정 */
+:root{
+  --bg:#f3f5f4; --paper:#fbfcfb; --fg:#1d2522; --muted:#5d6a65; --line:#d3dbd7;
+  --grid:#dfe7e3; --grid2:#bfccc6; --accent:#1f6f6a; --accent-soft:#d6ebe8;
+  --furn:#8a7a66; --furn-fill:#e8e1d6; --warn:#b4471f; --ok:#2f7a3c;
+  --p5:#d0602b; --p50:#2a7fa8; --p95:#7a4fb0; --pme:#1b1d1c;
+  --sans:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131917; --paper:#182120; --fg:#e4ebe8; --muted:#97a6a0; --line:#2c3836;
+  --grid:#22302d; --grid2:#33463f; --accent:#5fc0b6; --accent-soft:#1f3a37;
+  --furn:#b8a88f; --furn-fill:#2e2a24; --warn:#ef8a5e; --ok:#7fcb8a;
+  --p5:#f08a52; --p50:#5cb3dc; --p95:#b38ae6; --pme:#e9ecea; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#131917; --paper:#182120; --fg:#e4ebe8; --muted:#97a6a0; --line:#2c3836;
+  --grid:#22302d; --grid2:#33463f; --accent:#5fc0b6; --accent-soft:#1f3a37;
+  --furn:#b8a88f; --furn-fill:#2e2a24; --warn:#ef8a5e; --ok:#7fcb8a;
+  --p5:#f08a52; --p50:#5cb3dc; --p95:#b38ae6; --pme:#e9ecea; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px;
+  display:flex;flex-direction:column}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin-bottom:10px}
+h1{font-size:19px;font-weight:700;margin:0;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:13px;flex:1 1 260px;min-width:0}
+.wrap{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,1fr);gap:14px}
+.stage{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:8px;min-width:0;min-height:0;display:flex;flex-direction:column}
+svg#cv{display:block;width:100%;flex:1;min-height:0;touch-action:none;cursor:crosshair;user-select:none}
+svg#cv.grab{cursor:grabbing}
+.panel{overflow-y:auto;min-height:0;padding-right:4px;display:flex;flex-direction:column;gap:12px;min-width:0}
+}
+.scale{display:flex;justify-content:space-between;flex-wrap:wrap;gap:2px 12px;font-size:12px;color:var(--muted);padding:6px 4px 0;font-family:var(--mono)}
+.legend{display:flex;gap:12px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+section.box{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:10px 12px;min-width:0}
+section.box h2{font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--muted);margin:0 0 8px;text-transform:uppercase}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+button.chip{font:inherit;font-size:13px;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--fg);cursor:pointer}
+button.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--paper)}
+button.chip:disabled{opacity:.4;cursor:default}
+button.chip.undo{font-size:16px;line-height:1;padding:4px 11px;font-weight:600}
+button.pc{display:inline-flex;align-items:center;gap:6px}
+button.pc i{width:10px;height:10px;border-radius:2px;display:inline-block}
+button.pc small{display:none;font-size:11px;padding:0 5px;border-radius:999px;background:var(--paper);color:var(--accent);font-weight:600}
+button.pc.ref small{display:inline}
+button.chip:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pct{display:flex;gap:6px;flex-wrap:wrap}
+.pct label,.tog{display:flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--line);border-radius:999px;cursor:pointer;font-size:13px}
+.pct input,.tog input{accent-color:var(--accent)}
+.sl{display:grid;grid-template-columns:7.5em minmax(0,1fr) 3.4em;align-items:center;gap:8px;margin:1px 0}
+.sl span.v{font-family:var(--mono);font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
+.sl label{font-size:13px}
+.sl.auto label{color:var(--accent)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.furn{display:grid;grid-template-columns:auto minmax(0,1fr) 5.5em;gap:6px 8px;align-items:center;font-size:13px}
+.furn input[type=number],.stat input{width:100%;font:inherit;font-family:var(--mono);font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--fg);text-align:right}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;font-family:var(--sans)}
+thead th{font-family:var(--sans);font-weight:600}
+td.w{color:var(--warn);font-weight:600} td.o{color:var(--ok);font-weight:600}
+tr.rel td:first-child{color:var(--accent);font-weight:600}
+tr.sep td{border-top:2px solid var(--line)}
+.stat{display:grid;grid-template-columns:3em repeat(3,minmax(0,1fr));gap:6px;align-items:center;font-size:12px}
+.stat b{font-weight:600;text-align:center}
+.me{display:grid;grid-template-columns:minmax(0,1fr) 6.5em;gap:5px 8px;align-items:center;font-size:13px}
+.me input{width:100%;font:inherit;font-family:var(--mono);font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--fg);text-align:right}
+.me input::placeholder{color:var(--muted);opacity:.8}
+.me label small{color:var(--muted);font-size:11.5px}
+.me b.no{display:inline-grid;place-items:center;width:18px;height:18px;margin-right:6px;border-radius:50%;background:var(--pme);color:var(--paper);font-size:11px;font-weight:600;font-family:var(--mono);vertical-align:1px}
+.codebox{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;border:1px dashed var(--line);border-radius:6px;background:var(--bg)}
+.codebox input{flex:1 1 180px;min-width:0;font:inherit;font-family:var(--mono);font-size:13.5px;padding:5px 8px;border:1px solid var(--line);border-radius:4px;background:var(--paper);color:var(--fg)}
+.me.ro{margin-top:10px}.me.ro input{background:transparent;border-color:transparent;pointer-events:none}
+button.ghost{font:inherit;font-size:13px;padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--fg);cursor:pointer}
+button.act{font:inherit;font-size:13px;font-weight:600;padding:6px 12px;border-radius:6px;border:1px solid var(--pme);background:var(--pme);color:var(--bg);cursor:pointer}
+button.act:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+details summary{cursor:pointer;font-size:13px;color:var(--muted)}
+.note{font-size:12px;color:var(--muted);margin:8px 0 0}
+.hint{font-size:12.5px;margin:8px 0 0;color:var(--fg)}
+.tip{font-size:12px;color:var(--muted);margin:6px 0 0}
+/* 레이아웃: 넓은 화면은 그림 | (조작 고정부 + 옵션) 두 칸, 폰은 그림 → 조작 고정부 → 옵션(한 묶음씩 넘김) 세로 배치 */
+.side{overflow-y:auto;min-height:0;min-width:0;display:flex;flex-direction:column;gap:12px;padding-right:4px}
+.side .panel{overflow:visible;padding-right:0}
+.dock{display:flex;flex-direction:column;gap:12px;min-width:0}
+.stage{position:relative}
+.vbtn{position:absolute;top:8px;right:8px;z-index:2;display:flex;gap:4px}
+.vbtn button{font:inherit;font-size:12px;font-weight:600;min-width:34px;height:30px;padding:0 9px;border-radius:6px;border:1px solid var(--line);background:var(--paper);color:var(--fg);cursor:pointer;opacity:.92}
+.vbtn button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.zhint{position:absolute;left:8px;top:8px;z-index:2;font-size:11.5px;color:var(--muted);background:var(--paper);padding:3px 7px;border-radius:5px;border:1px solid var(--line);opacity:.92;pointer-events:none}
+@media (max-width:860px){
+  html,body{height:100%;overflow:hidden}
+  body{display:flex;flex-direction:column;padding-block:4px 0}
+  body::before{display:none}
+  header{margin-bottom:4px;gap:4px 10px;flex-wrap:nowrap;min-width:0}
+  header h1{font-size:15px;flex:none}
+  header .sub{display:none}
+  header #scenes{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;min-width:0;padding-bottom:2px}
+  header #scenes::-webkit-scrollbar{display:none}
+  header #scenes button.chip{flex:none;font-size:12px;padding:4px 9px}
+  .wrap{display:flex;flex-direction:column;gap:6px;flex:1;min-height:0}
+  .side{display:contents}
+  .stage{flex:1 1 0;min-height:150px;height:auto;position:relative;padding:2px;margin:0;box-shadow:none}
+  .scale{display:none}
+  .anim{padding:2px 4px 0}
+  .dock{flex:none;gap:6px}
+  .dock section.box{padding:6px 8px}
+  .dock section.box h2,.dock .tip,.dock .hide-m{display:none}
+  .dock #presets{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0!important;padding-bottom:2px}
+  .dock #presets::-webkit-scrollbar{display:none}
+  .dock #smode{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 0 4px!important}
+  .dock #smode::-webkit-scrollbar{display:none}
+  .dock #smode button.chip{flex:none;font-size:12.5px;padding:5px 10px}
+  .dock #presets button.chip{flex:none;font-size:12.5px;padding:5px 10px}
+  .dock #sliders{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+  .dock .sl{grid-template-columns:minmax(0,1fr) auto;gap:0 4px;margin:0}
+  .dock .sl label{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dock .sl label small{display:none}
+  .dock .sl span.v{font-size:11px}
+  .dock .sl input{grid-column:1/-1;grid-row:2;height:22px}
+  .dock .row{margin:0!important}
+  .side .panel{flex:0 0 clamp(160px,29vh,320px);overflow-y:auto;scroll-snap-type:y mandatory;overscroll-behavior:contain;gap:8px;padding-bottom:max(8px,env(safe-area-inset-bottom,0px))}
+  .panel section.box{scroll-snap-align:start;padding:8px 10px}
+  th,td{padding:3px 5px;font-size:12px}
+  .vbtn{top:4px;right:4px}
+  .zhint{top:4px;left:4px}
+}
+
+#smode{margin-bottom:8px}
+#smode .lab{font-size:12px;color:var(--muted);margin-right:2px}
+.jsel,.pgrip,.sgrip{display:none}
+@media (max-width:860px){
+  .jsel{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin-bottom:2px}
+  .jsel::-webkit-scrollbar{display:none}
+  .jsel button{flex:none;font:inherit;font-size:12px;padding:3px 9px;border-radius:5px;border:1px solid var(--line);background:transparent;color:var(--fg);cursor:pointer}
+  .jsel button[aria-pressed="true"]{background:var(--fg);color:var(--paper);border-color:var(--fg)}
+  .dock #sliders{display:block}
+  .dock .sl{display:none}
+  .dock .sl.on{display:grid;grid-template-columns:minmax(0,1fr) 3.2em;gap:0 8px}
+  .dock .sl.on label{display:none}
+  .dock .sl.on input{grid-column:1;grid-row:1;height:26px}
+  .dock .sl.on span.v{grid-column:2;font-size:12px}
+  .pgrip{display:flex;flex:none;align-items:center;justify-content:center;gap:8px;height:22px;margin:0 0 -4px;border:0;background:transparent;color:var(--muted);font:inherit;font-size:11.5px;cursor:pointer}
+  .pgrip::before{content:"";width:36px;height:4px;border-radius:2px;background:var(--line)}
+  .sgrip{display:flex;flex:none;height:18px;margin:-5px 0 -4px;align-items:center;justify-content:center;touch-action:none;cursor:ns-resize;user-select:none}
+  .sgrip::before{content:"";width:48px;height:5px;border-radius:3px;background:var(--muted);opacity:.55}
+  .sgrip:active::before,.sgrip:focus-visible::before{background:var(--accent);opacity:1}
+  .sgrip:focus-visible{outline:none}
+  .stage[style*="height"]{flex:none}
+  .side .panel{flex:1 1 0;min-height:110px}
+}
+</style>
+
+<header>
+  <div class="row" id="scenes">
+    <button class="chip" data-scene="toilet">용변</button>
+    <button class="chip" data-scene="basin">세면</button>
+    <button class="chip" data-scene="bath">목욕</button>
+    <button class="chip" data-scene="shower">샤워</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="stage">
+    <div class="vbtn"><button id="vOut" aria-label="축소">−</button><button id="vIn" aria-label="확대">+</button><button id="vFit">맞춤</button></div>
+    <div class="zhint" id="zhint">두 손가락으로 확대·축소, 빈 곳을 끌어 이동</div>
+    <svg id="cv" viewBox="-450 -2450 1850 2610" role="img" aria-label="인체와 가구 측면 입면"></svg>
+    <div class="scale">
+      <span>○ 관절을 끌어 자세 · □ 가구를 끌어 치수 · 빈 곳을 끌어 화면 이동 · 휠·두 손가락으로 확대</span>
+      <span class="legend" id="legend"></span>
+    </div>
+  </div>
+
+  <div class="sgrip" id="sGrip" role="separator" aria-orientation="horizontal" aria-label="그림 창 높이 조절(끌어서 크기 변경, 두 번 눌러 자동)" tabindex="0"></div>
+  <div class="side">
+  <div class="dock">
+    <section class="box">
+      <h2>자세</h2>
+      <div class="row" id="smode" aria-label="장면 세부 유형"></div>
+      <div class="row" id="presets" style="margin-bottom:8px">
+        <button class="chip undo" id="undoBtn" aria-label="되돌리기" title="되돌리기" disabled>↶</button>
+        <button class="chip" data-p="stand">서기</button>
+        <button class="chip" data-p="sit">앉기</button>
+        <button class="chip" data-p="write">필기</button>
+        <button class="chip" data-p="type">키보드 작업</button>
+        <button class="chip" data-p="counter">작업대 작업</button>
+        <button class="chip" data-p="up">위로 뻗기</button>
+        <button class="chip" data-p="fwd">앞으로 뻗기</button>
+        <button class="chip" data-p="squat">쪼그리기</button>
+        <button class="chip" data-p="lie">눕기</button>
+        <button class="chip" data-p="recline">기대 앉기</button>
+        <button class="chip" data-p="sofa">소파에 기대기</button>
+        <button class="chip" data-p="bedge">걸터앉기</button>
+        <button class="chip" data-p="tsit">변기 앉기</button>
+        <button class="chip" data-p="blie">욕조 눕기</button>
+        <button class="chip" data-p="bsit">욕조 앉기</button>
+        <button class="chip" data-p="rimsit">턱에 걸터앉기</button>
+        <button class="chip" data-p="wash">세수</button>
+        <button class="chip" data-p="brush">양치</button>
+        <button class="chip" data-p="hair">머리 감기</button>
+        <button class="chip" data-p="ssit">샤워 의자 앉기</button>
+      </div>
+      <div class="jsel" id="jsel"></div>
+      <div id="sliders"></div>
+      <div class="row hide-m" style="margin-top:8px">
+        <button class="chip" id="mFloor" aria-pressed="true">바닥에 발 딛기</button>
+        <button class="chip" id="mSeat" aria-pressed="false">좌면에 앉히기</button>
+      </div>
+      <p class="tip">그림의 ○ 손잡이를 끌어도 자세가 바뀝니다. 골반을 위로 끌면 일어서고, 의자 위로 내리면 앉습니다. 서 있을 때 발을 끌면 몸 전체가 좌우로, 앉아 있을 때는 다리만 움직입니다. 어깨를 끌면 상체 기울기가, 머리를 끌면 고개 숙임·젖힘이, 팔꿈치를 끌면 위팔이, 손을 끌면 아래팔이 움직입니다. 각도 값은 내 몸(없으면 50% 또는 표시된 인체) 기준이며, 팔 슬라이더를 움직이면 목표점이 해제됩니다.</p>
+    </section>
+  </div>
+  <div class="panel">
+    <section class="box">
+      <h2>판정</h2>
+      <div class="tbl"><table id="out"></table></div>
+      <p class="hint" id="hint"></p>
+    </section>
+    <section class="box">
+      <h2>가구 치수(mm)</h2>
+      <div class="furn">
+        <input hidden type="checkbox" id="fChair"><label hidden for="fChair">의자 좌면높이</label><input hidden type="number" id="chairH" step="10">
+        <span hidden></span><label hidden for="chairD">의자 좌면깊이</label><input hidden type="number" id="chairD" step="10">
+        <input hidden type="checkbox" id="fDesk"><label hidden for="fDesk">책상 높이</label><input hidden type="number" id="deskH" step="10">
+        <input hidden type="checkbox" id="fCounter"><label hidden for="fCounter">주방 작업대 높이</label><input hidden type="number" id="counterH" step="10">
+        <input hidden type="checkbox" id="fUpper"><label hidden for="fUpper">상부장 하단 높이</label><input hidden type="number" id="upperB" step="10">
+        <span hidden></span><label hidden for="upperT">상부장 상단 높이</label><input hidden type="number" id="upperT" step="10">
+        <input hidden type="checkbox" id="fBed"><label hidden for="fBed">침대 높이</label><input hidden type="number" id="bedH" step="10">
+        <span hidden></span><label hidden for="bedL">침대 길이</label><input hidden type="number" id="bedL" step="10">
+        <input type="checkbox" id="fToi"><label for="fToi">변기 높이</label><input type="number" id="toiH" step="10">
+        <input type="checkbox" id="fBath"><label for="fBath">욕조 높이(턱)</label><input type="number" id="bathRim" step="10">
+        <span></span><label for="bathL">욕조 길이</label><input type="number" id="bathL" step="10">
+        <input type="checkbox" id="fBasin"><label for="fBasin">세면대 상단 높이</label><input type="number" id="basinH" step="10">
+        <span hidden></span><label hidden for="basinHB">세면대 하단 높이</label><input hidden type="number" id="basinHB" step="10">
+        <span></span><label for="mirB">거울 하단 높이</label><input type="number" id="mirB" step="10">
+        <span></span><label for="mirT">거울 상단 높이</label><input type="number" id="mirT" step="10">
+        <input type="checkbox" id="fShower"><label for="fShower">샤워기 높이</label><input type="number" id="showerHH" step="10">
+        <span></span><label for="valveH">수전 높이</label><input type="number" id="valveH" step="10">
+        <span></span><label for="shelfH">선반 높이</label><input type="number" id="shelfH" step="10">
+        <span></span><label for="sseatH">샤워 의자 높이</label><input type="number" id="sseatH" step="10">
+      </div>
+      <p class="note">분절 길이는 Drillis·Contini(1966)의 키 대비 비율, 무게중심은 Dempster 계열 분절 질량비를 적용한 근사값입니다. 판정은 경향을 보는 용도로 사용하십시오.</p>
+    </section>
+    <section class="box">
+      <h2>옵션</h2>
+      <div class="row">
+        <button class="chip" id="wcOn" aria-pressed="false">휠체어</button>
+        <button class="chip" id="stsPlay">앉았다 일어서기 ▶</button>
+        <input type="range" id="stsP" min="0" max="100" value="0" style="flex:1 1 120px;min-width:0" aria-label="일어서기 진행 정도">
+        <span id="stsV" style="font-family:var(--mono);font-size:12px;width:3.2em;text-align:right">0%</span>
+      </div>
+      <p class="tip">휠체어는 세면 장면에서 놓입니다(세면대 하부 무릎 공간 확인). 앉았다 일어서기는 변기, 욕조 턱, 샤워 의자에서 작동합니다. 엉덩이가 좌면에서 뜨는 순간 무게중심이 발 위에 와야 일어설 수 있습니다.</p>
+    </section>
+    <section class="box">
+      <h2>치수 레이어</h2>
+      <div class="row">
+        <label class="tog"><input type="checkbox" id="dOn" checked> 높이 치수선</label>
+        <label class="tog"><input type="checkbox" id="dBox" checked> 신체 점유 범위</label>
+        <label class="tog"><input type="checkbox" id="dSys" checked> 시스템 점유 범위(인체+가구)</label>
+        <label class="tog"><input type="checkbox" id="dFur" checked> 가구 치수</label>
+      </div>
+      <p class="tip">치수선과 점유 범위는 내 몸에만 표시됩니다.</p>
+    </section>
+    <section class="box">
+      <h2>비교 인체</h2>
+      <div class="row">
+        <button class="chip" id="sexM" aria-pressed="true">남성</button>
+        <button class="chip" id="sexF" aria-pressed="false">여성</button>
+        <span style="width:1px;height:20px;background:var(--line);margin:0 4px"></span>
+        <button class="chip pc" data-dref="5"><i style="background:var(--p5)"></i>5%</button>
+        <button class="chip pc" data-dref="50"><i style="background:var(--p50)"></i>50%</button>
+        <button class="chip pc" data-dref="95"><i style="background:var(--p95)"></i>95%</button>
+      </div>
+      <p class="tip">내 몸 위에 윤곽선으로 겹쳐 보입니다. 5%는 작은 체격(도달 판정), 95%는 큰 체격(여유 판정) 기준이며, 수치는 판정표에서 비교합니다.</p>
+      <details style="margin-top:10px">
+        <summary>키 기준값(mm) 수정</summary>
+        <div class="stat" style="margin-top:8px">
+          <span></span><b>5%</b><b>50%</b><b>95%</b>
+          <span>남성</span><input type="number" id="m5"><input type="number" id="m50"><input type="number" id="m95">
+          <span>여성</span><input type="number" id="f5"><input type="number" id="f50"><input type="number" id="f95">
+        </div>
+        <p class="note">기본값은 20~30대 한국인 성인의 참고용 추정치입니다. 수업 전 Size Korea 최신 측정값으로 바꾸어 사용하십시오.</p>
+      </details>
+    </section>
+    <section class="box">
+      <h2>더미 불러오기</h2>
+      <div class="codebox">
+        <input type="text" id="dIn" placeholder="D2-1700-0-0-0-0-0-0-0-0-0" aria-label="더미 코드" autocomplete="off" spellcheck="false">
+        <button class="act" id="dLoad">불러오기</button>
+      </div>
+      <p class="tip" id="dMsg">1단계(독립 신체) 도구에서 복사한 더미 코드를 붙여 넣으십시오. 아래 치수는 불러온 값이며, 회색은 키 비율로 추정한 값입니다.</p>
+      <div class="me ro">
+        <label for="meH"><b class="no">1</b>키 <small>벽에 등 대고 머리 위 책으로 표시</small></label><input type="number" readonly tabindex="-1" id="meH" step="1">
+        <label for="meSit"><b class="no">2</b>앉은키 <small>좌면~머리끝, 벽에 등 대고</small></label><input type="number" readonly tabindex="-1" id="meSit">
+        <label for="meSel"><b class="no">3</b>앉은 팔꿈치높이 <small>좌면~팔꿈치 아래, 팔꿈치 90°</small></label><input type="number" readonly tabindex="-1" id="meSel">
+        <label for="meFh"><b class="no">4</b>팔꿈치~손끝 길이 <small>팔꿈치를 책상 모서리에</small></label><input type="number" readonly tabindex="-1" id="meFh">
+        <label for="mePop"><b class="no">5</b>오금높이 <small>무릎 90°, 바닥~무릎 뒤 허벅지 아래</small></label><input type="number" readonly tabindex="-1" id="mePop">
+        <label for="meBpl"><b class="no">6</b>엉덩이~오금 길이 <small>엉덩이를 벽에 붙이고 앉아 벽~무릎 뒤</small></label><input type="number" readonly tabindex="-1" id="meBpl">
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="act" id="fitMe">내 몸에 맞춘 가구</button>
+        <button class="ghost" id="resetMe">50% 체형으로 초기화</button>
+      </div>
+      <p class="tip">단위 mm. 내 몸은 반투명 실루엣, 5·50·95%는 비교용 윤곽선으로 표시됩니다.</p>
+      <p class="hint" id="fitOut"></p>
+    </section>
+    <section class="box">
+      <h2>손 목표점</h2>
+      <div class="row">
+        <button class="chip" id="tgOn" aria-pressed="false">목표점 사용</button>
+        <label class="tog"><input type="checkbox" id="lean" checked> 몸통 숙여 닿기 허용</label>
+      </div>
+      <p class="tip">평소에는 손을 직접 끌어 자세를 잡습니다. 목표점을 켜면 표시된 모든 인체가 같은 물건(예: 책상 안쪽의 책)에 손을 뻗어 체격별 도달 차이를 비교합니다. 팔만으로 닿지 않으면 몸통을 숙이고, 그래도 닿지 않으면 부족한 거리를 표시합니다.</p>
+    </section>
+  </div>
+  </div>
+</div>
+
+<script>
+(function(){
+const NS="http://www.w3.org/2000/svg";
+const BASE={trunk:.288, ua:.186, fa:.146, hand:.108, th:.245, sh:.246, ank:.039, neck:.11, head:.062};
+let R=BASE;
+// 손은 그리지 않고 아래팔을 손바닥 중간(쥐는 점)까지 연장함: 손 길이의 35%
+const GRIP=.35;
+const PS=[5,50,95,"me"];
+const keyOf=v=>v==="me"?"me":+v;
+// 직접 입력한 치수로 분절 비율을 만듦(빈칸은 키 비율로 추정)
+function meRatios(){const m=S.me,H=m.H,r=Object.assign({},BASE);
+  // 오금높이 = 무릎관절높이 − 0.04H, 엉덩이~오금 = 허벅지 + 0.02H 로 보고 분절 길이를 역산
+  if(m.pop)r.sh=clamp(m.pop/H+.04-BASE.ank,.17,.32);
+  if(m.bpl)r.th=clamp(m.bpl/H-.02,.17,.32);
+  // 앉은키 → 좌면 위 어깨높이 → 몸통, 앉은 팔꿈치높이 → 위팔
+  const shSeat=m.sit?m.sit-(BASE.neck+BASE.head)*H:(.055+BASE.trunk)*H;
+  r.trunk=clamp(shSeat/H-.055,.2,.4);
+  if(m.sel)r.ua=clamp((shSeat-m.sel)/H,.12,.26);
+  if(m.fh){r.fa=m.fh*(.146/.254)/H;r.hand=m.fh*(.108/.254)/H;}
+  return r;}
+function heightOf(p){return p==="me"?S.me.H:S.stat[S.sex][p];}
+function ratiosOf(p){return p==="me"?meRatios():BASE;}
+function labelOf(p){return p==="me"?"나":`${S.sex==="m"?"남":"여"} ${p}%`;}
+// 분절 질량비(양쪽 팔다리 합산)와 근위단 기준 무게중심 위치
+const M={head:.081,trunk:.497,ua:.056,fa:.032,hand:.012,th:.2,sh:.093,foot:.029};
+const S={
+  sex:"m", show:{5:false,50:false,95:false,me:true}, me:{H:1700,sit:null,sel:null,fh:null,pop:null,bpl:null},
+  stat:{m:{5:1635,50:1735,95:1835}, f:{5:1510,50:1605,95:1700}},
+  pose:{t:0,n:0,ua:5,el:10,wr:0,th:0,kn:0}, mode:"floor", x:300,
+  f:{chair:{on:false,h:450,d:420,bh:420,x:0,wc:false}, desk:{on:false,h:730,x0:480,x1:1080}, mon:{on:false,mode:"pc",dx:400,dh:430,lift:0}, counter:{on:false,h:850,x0:350,task:"light"}, upper:{on:false,b:1450,t:2150,x0:600},
+    bed:{on:false,x:-300,L:2000,h:450,hb:950,sofa:false}, toilet:{on:false,wall:-150,h:420,door:1250,px:650,ph:700}, bath:{on:false,x:-200,L:1600,rim:550,bot:60,wt:70,wl:450,sl:420,onRim:false},
+    basin:{on:false,wall:900,h:800,dep:500,hb:650,mb:1050,mt:1850,fh:120}, shower:{on:false,lw:-150,rw:700,hh:2000,vh:1100,sh:1300,seatH:450,seatD:400}},
+  fdrag:null,
+  sm:{study:"write",kitchen:"light",bed:"bed"},
+  scene:"free", target:null, lean:true, dim:{on:true,box:true,sys:true,fur:true,ref:"me"}
+};
+const PRE={
+  stand:{t:0,n:0,ua:5,el:10,th:0,kn:0,mode:"floor"},
+  sit:{t:0,n:5,ua:12,el:80,th:90,kn:90,mode:"seat"},
+  write:{t:15,n:20,ua:22,el:78,th:90,kn:90,mode:"seat"},
+  type:{t:-3,n:8,ua:14,el:82,th:90,kn:90,mode:"seat"},
+  sofa:{t:-15,n:18,ua:18,el:70,th:84,kn:86,mode:"seat"},
+  counter:{t:10,n:25,ua:15,el:72,th:0,kn:0,mode:"floor"},
+  up:{t:0,n:-15,ua:172,el:4,th:0,kn:0,mode:"floor"},
+  fwd:{t:10,n:0,ua:90,el:0,th:0,kn:0,mode:"floor"},
+  squat:{t:35,n:-10,ua:30,el:30,th:125,kn:145,mode:"floor"},
+  lie:{t:-90,n:15,ua:90,el:0,th:90,kn:0,mode:"seat"},
+  recline:{t:-25,n:20,ua:25,el:70,th:90,kn:8,mode:"seat"},
+  bedge:{t:5,n:10,ua:15,el:60,th:90,kn:90,mode:"seat"},
+  tsit:{t:15,n:15,ua:20,el:75,th:88,kn:92,mode:"seat"},
+  blie:{t:-45,n:30,ua:35,el:40,th:92,kn:15,mode:"seat"},
+  bsit:{t:3,n:10,ua:25,el:50,th:120,kn:130,mode:"seat"},
+  rimsit:{t:5,n:8,ua:15,el:40,th:88,kn:90,mode:"seat"},
+  wash:{t:40,n:30,ua:60,el:70,th:5,kn:10,mode:"floor"},
+  brush:{t:5,n:10,ua:25,el:135,th:0,kn:0,mode:"floor"},
+  hair:{t:15,n:20,ua:93,el:124,th:5,kn:8,mode:"floor"},
+  ssit:{t:3,n:10,ua:20,el:60,th:90,kn:90,mode:"seat"}
+};
+const PRESETS={study:["stand","sit","write","type","up","fwd","squat"],sofa:["sofa","sit","stand"],kitchen:["stand","counter","sit","up","fwd","squat"],bed:["lie","recline","bedge","stand"],
+  toilet:["tsit","stand"],bath:["blie","bsit","rimsit","stand"],basin:["stand","wash","brush"],shower:["stand","hair","ssit"],free:["stand","sit","up","fwd","squat"]};
+const FIXED_SEAT=["bed","toilet","bath","shower"];
+const SL=[["t","몸통 기울기",-95,90],["n","목·머리",-40,60],["ua","위팔(수직 기준)",-60,180],["el","팔꿈치 굽힘",0,150],["th","허벅지(수직 기준)",-30,140],["kn","무릎 굽힘",0,160],["x","인체 위치(x)",-200,1100]];
+const IK_KEYS=["t","ua","el"];
+const $=id=>document.getElementById(id);
+let lastRef=null;
+
+const slBox=$("sliders");
+SL.forEach(([k,lab,mn,mx])=>{
+  const d=document.createElement("div");d.className="sl";d.id="row_"+k;
+  d.innerHTML=`<label for="s_${k}">${lab}</label><input type="range" id="s_${k}" min="${mn}" max="${mx}" step="1"><span class="v" id="v_${k}"></span>`;
+  slBox.appendChild(d);
+  d.querySelector("input").addEventListener("input",e=>{
+    cancelTween();pushUndoThrottled();
+    const v=+e.target.value;
+    if(k==="x")S.x=v; else {
+      if(S.target&&IK_KEYS.includes(k)){ if(lastRef) Object.assign(S.pose,{t:lastRef.t,ua:lastRef.ua,el:lastRef.el}); S.target=null; }
+      S.pose[k]=v;
+    }
+    draw();
+  });
+});
+let jSel="t";
+SL.forEach(([k,lab])=>{const b=document.createElement("button");b.textContent=lab.replace(/\(.*\)/,"").replace(/ (기울기|굽힘)$/,"").trim();b.dataset.j=k;b.onclick=()=>{jSel=k;syncJ();};$("jsel").appendChild(b);});
+function syncJ(){SL.forEach(([k])=>$("row_"+k).classList.toggle("on",k===jSel));document.querySelectorAll("#jsel button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.j===jSel));}
+syncJ();
+const DRAGJ={sh:"t",head:"n",elbow:"ua",wrist:"el",foot:"kn",hip:"kn"};
+function syncSliders(ref){
+  SL.forEach(([k])=>{
+    let v=k==="x"?S.x:S.pose[k];
+    const auto=S.target&&ref&&IK_KEYS.includes(k);
+    if(auto) v=Math.round(ref[k]);
+    $("s_"+k).value=v;$("v_"+k).textContent=k==="x"?v:v+"°";
+    $("row_"+k).classList.toggle("auto",!!auto);
+  });
+}
+
+["m","f"].forEach(s=>[5,50,95].forEach(p=>{const el=$(s+p);el.value=S.stat[s][p];el.addEventListener("input",()=>{const v=+el.value;if(v>1000&&v<2300){S.stat[s][p]=v;draw();}});}));
+$("sexM").onclick=()=>{S.sex="m";draw();}; $("sexF").onclick=()=>{S.sex="f";draw();};
+$("mFloor").onclick=()=>{cancelTween();pushUndo();S.mode="floor";S.pushChair=true;stsReset();draw();}; $("mSeat").onclick=()=>{cancelTween();pushUndo();S.mode="seat";if(!curSeat())S.f.chair.on=true;syncFurn();stsReset();draw();};
+$("dOn").addEventListener("change",e=>{S.dim.on=e.target.checked;draw();});
+$("dBox").addEventListener("change",e=>{S.dim.box=e.target.checked;draw();});
+$("dSys").addEventListener("change",e=>{S.dim.sys=e.target.checked;draw();});
+$("dFur").addEventListener("change",e=>{S.dim.fur=e.target.checked;draw();});
+document.querySelectorAll("[data-dref]").forEach(b=>b.onclick=()=>{const p=keyOf(b.dataset.dref);S.show[p]=!S.show[p];draw();});
+const ME=[["meH","H"],["meSit","sit"],["meSel","sel"],["meFh","fh"],["mePop","pop"],["meBpl","bpl"]];
+function mePlaceholders(){const H=S.me.H,r=BASE;const est={sit:(.055+r.trunk+r.neck+r.head)*H,sel:(.055+r.trunk-r.ua)*H,fh:(r.fa+r.hand)*H,pop:(r.ank+r.sh-.04)*H,bpl:(r.th+.02)*H};
+  ME.slice(1).forEach(([id,k])=>{$(id).placeholder="약 "+Math.round(est[k]/10)*10;});}
+$("meH").value=S.me.H;mePlaceholders();
+ME.forEach(([id,k])=>$(id).addEventListener("input",e=>{const v=+e.target.value;
+  if(k==="H"){if(v>1000&&v<2300){S.me.H=v;mePlaceholders();}else return;}
+  else S.me[k]=(v>100&&v<2300)?v:null;
+  if(!S.show.me){S.show.me=true;S.dim.ref="me";}draw();}));
+function applyCode(t){const m=/D[12]-(\d{3,4})-(\d+)-(\d+)-(\d+)-(\d+)-(\d+)(?:-\d+-\d+-\d+-\d+)?/.exec((t||"").replace(/\s/g,""));if(!m)return false;
+  const v=m.slice(1,7).map(Number);if(v[0]<1000||v[0]>2300)return false;const nz=x=>x>100&&x<2300?x:null;
+  S.me={H:v[0],sit:nz(v[1]),sel:nz(v[2]),fh:nz(v[3]),pop:nz(v[4]),bpl:nz(v[5])};
+  ME.forEach(([id,k])=>$(id).value=S.me[k]||"");mePlaceholders();try{localStorage.setItem("ergoDummy",m[0]);}catch(e){}return m[0];}
+$("dLoad").onclick=()=>{const ok=applyCode($("dIn").value);
+  $("dMsg").textContent=ok?`불러왔습니다: 키 ${S.me.H}mm. 입력하지 않은 치수는 키 비율로 추정합니다.`:"코드 형식이 맞지 않습니다. 1단계 도구의 '복사' 버튼으로 복사한 D2-(또는 D1-)로 시작하는 코드를 붙여 넣으십시오.";
+  if(ok){$("dIn").value=ok;draw();}};
+$("dIn").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("dLoad").click();}});
+try{const c=localStorage.getItem("ergoDummy");if(c&&applyCode(c))$("dIn").value=c;}catch(e){}
+$("resetMe").onclick=()=>{$("dIn").value="";try{localStorage.removeItem("ergoDummy");}catch(e){}
+  S.me={H:S.stat[S.sex][50],sit:null,sel:null,fh:null,pop:null,bpl:null};
+  $("meH").value=S.me.H;ME.slice(1).forEach(([id])=>$(id).value="");mePlaceholders();
+  $("fitOut").textContent=`${S.sex==="m"?"남성":"여성"} 50% 체형(키 ${S.me.H})으로 되돌렸습니다. 나머지 치수는 키 비율로 추정합니다.`;draw();};
+$("fitMe").onclick=()=>{cancelTween();pushUndo();
+  const f=S.f,H=S.me.H,r=meRatios(),r10=v=>Math.round(v/10)*10;S.show.me=true;S.target=null;stsReset();
+  const seatH=r10((r.sh+r.ank-.055)*H), kneeH=r10((r.ank+r.sh)*H), elbowStand=(r.ank+r.sh+r.th+r.trunk-r.ua)*H;
+  let msg="";
+  if(S.scene==="bed"&&f.bed.sofa){f.bed.h=seatH;f.bed.L=r10((r.th+.02)*H-40)+140;f.bed.hb=r10(seatH+(.055+r.trunk)*H);setPose("sofa");place("sofa");
+    msg=`제안: 소파 좌면높이 ${f.bed.h}, 좌면 깊이 ${f.bed.L-140}, 등받이 ${f.bed.hb}mm. 발이 바닥에 닿는 높이, 엉덩이~오금 길이보다 짧은 깊이, 어깨까지 받치는 등받이입니다. 실제 소파는 대개 이보다 낮고 깊습니다.`;}
+  else if(S.scene==="bed"){f.bed.h=seatH;f.bed.L=r10(H+60+250);setPose("bedge");place("bedge");
+    msg=`제안: 침대 높이 ${f.bed.h}, 길이 ${f.bed.L}mm. 걸터앉았을 때 발이 바닥에 닿는 높이와, 키에 머리·발 쪽 여유 약 250mm를 더한 길이입니다.`;}
+  else if(S.scene==="toilet"){f.toilet.h=r10(seatH-20);f.toilet.ph=r10(f.toilet.h+(r.trunk-r.ua)*H*.9);f.toilet.px=r10(f.toilet.wall+650+.08*H);setPose("tsit");place("tsit");
+    msg=`제안: 변기 높이 ${f.toilet.h}, 휴지걸이 높이 ${f.toilet.ph}mm. 변기는 의자보다 약간 낮게(발을 딛고 힘주기 쉬움), 휴지걸이는 앉은 팔꿈치 높이 근처에 둡니다.`;}
+  else if(S.scene==="basin"){const b=f.basin,eye=(r.ank+r.sh+r.th+r.trunk+r.neck+.005)*H;b.h=r10(clamp(elbowStand-150,650,1000));b.mb=r10(Math.max(b.h+100,eye-300));b.mt=r10(Math.min(2300,eye+300));setPose("wash");place("wash");
+    msg=`제안: 세면대 상단 ${b.h}, 거울 ${b.mb}~${b.mt}mm. 세면대는 선 팔꿈치보다 약 150mm 낮게(세수할 때 물을 아래로 받는 작업), 거울은 눈높이 위아래 300mm를 덮도록 했습니다. 휠체어를 켜서 같은 세면대에 접근할 수 있는지 확인하십시오.`;}
+  else if(S.scene==="shower"){const w=f.shower,seatEl=seatH+(.055+r.trunk-r.ua)*H;w.seatH=r10(seatH);w.hh=r10(Math.min(2300,H+250));w.vh=r10(clamp((seatH+(.055+r.trunk)*H+elbowStand)/2,700,1300));w.sh=r10(w.vh+100);setPose("ssit");place("ssit");
+    msg=`제안: 샤워기 ${w.hh}, 수전 ${w.vh}, 선반 ${w.sh}, 샤워 의자 ${w.seatH}mm. 샤워기는 키보다 약 250mm 높게, 수전은 앉은 어깨와 선 팔꿈치의 중간 높이에 두어 서서도 앉아서도 닿게 했습니다. 샤워 의자에 앉아 수전이 닿지 않으면 실제로는 수전을 의자 옆벽으로 옮깁니다.`;}
+  else if(S.scene==="bath"){f.bath.rim=r10(clamp(seatH,350,Math.min(kneeH,800)));f.bath.wl=Math.min(f.bath.wl,f.bath.rim-30);setPose("blie");place("blie");draw();
+    const B=refBody();if(B){f.bath.L=r10(clamp(B.toe[0]+40-f.bath.x+f.bath.wt,1000,2200));}
+    msg=`제안: 욕조 턱 ${f.bath.rim}, 길이 ${f.bath.L}mm. 턱은 걸터앉기 좋은 높이(오금높이 수준)로 해 무릎 높이를 넘지 않게 하고, 길이는 기대 누웠을 때 발끝이 끝벽에 닿아 몸이 미끄러지지 않는 정도입니다.`;}
+  else if(S.scene==="kitchen"&&!f.chair.wc){const T=TASK[f.counter.task]||TASK.light;f.counter.h=r10(elbowStand+T.fit);f.upper.t=r10(Math.min(2400,(r.ank+r.sh+r.th+r.trunk+r.ua+r.fa+GRIP*r.hand)*H-50));f.upper.b=r10(Math.max(f.counter.h+450,f.upper.t-700));setPose("counter");S.x=170;
+    msg=`제안: 작업대 높이 ${f.counter.h}, 상부장 상단 ${f.upper.t}mm. 작업대는 ${T.name} 기준(선 팔꿈치 ${T.fit>0?"+":""}${T.fit}mm), 상부장 상단은 손이 닿는 높이에 맞췄습니다.`;}
+  else{if(S.scene!=="study"&&!f.chair.wc)scene("study");const c=f.chair;
+    S.x=c.x+130;setPose("sit");
+    c.h=c.wc?c.h:seatH;c.d=r10((r.th+.02)*H-80)-30;
+    f.desk.h=r10(c.h+.055*H+r.trunk*H-r.ua*H-(f.mon.on&&f.mon.mode==="pc"?30:0));S.x=Math.round(c.x+130);
+    if(f.mon.on){setPose("type");S.x=Math.round(c.x+130);syncFurn();draw();const B=refBody();
+      if(B&&f.mon.mode==="pc"){f.mon.dh=r10(clamp(B.eye[1]-f.desk.h,380,800));f.mon.dx=r10(clamp(B.eye[0]+700,f.desk.x0+250,f.desk.x1-20)-f.desk.x0);}
+      if(f.mon.mode==="laptop")f.mon.lift=0;}
+    msg=c.wc?`휠체어 좌면 ${c.h}mm 기준 책상 높이 ${f.desk.h}mm. 팔걸이가 책상 하부에 걸리는지 확인하십시오.`:`제안: 의자 좌면높이 ${c.h}, 좌면깊이 ${c.d+30}, 책상 높이 ${f.desk.h}mm. 발이 바닥에 닿는 좌면, 오금 뒤에 여유를 둔 깊이, 앉은 팔꿈치 높이의 책상을 기준으로 계산했습니다.${f.mon.on?(f.mon.mode==="pc"?" 모니터는 화면 상단을 눈높이에, 화면을 눈에서 약 700mm 떨어지게 두어 화면 중앙을 약 13° 아래로 보게 했습니다. 키보드 높이에 맞추려 책상을 30mm 낮췄습니다.":" 노트북은 받침 없이 두었습니다. 받침으로 화면을 올리면 키보드가 어떻게 되는지 확인하십시오."):""}`;}
+  syncFurn();$("fitOut").textContent=msg+" 5%·95%를 켜서 같은 가구가 다른 체격에 맞는지 비교해 보십시오.";
+  draw();};
+// 색상 팔레트: [나, 5%, 50%, 95%] × [밝은 테마, 어두운 테마]
+const PAL={
+  cobalt:{l:["#2457c5","#c9871a","#6b7a86","#8a4f9e"],d:["#7aa2ff","#e8b04e","#a3b0ba","#c592dc"]},
+  terra:{l:["#c4552d","#3f7fb0","#7d8577","#6a4c93"],d:["#f08a62","#79b4e0","#aab2a3","#a98ad0"]},
+  olive:{l:["#4d6b2f","#c07a2a","#6f7a86","#3d5f9e"],d:["#9cc26a","#e6a95b","#a3aebb","#86a8e6"]}};
+const KEYS=["--pme","--p5","--p50","--p95"];
+let palName="cobalt";
+function isDark(){const t=document.documentElement.getAttribute("data-theme");if(t)return t==="dark";try{return matchMedia("(prefers-color-scheme: dark)").matches;}catch(e){return false;}}
+function applyPal(){const P=PAL[palName][isDark()?"d":"l"],st=document.documentElement.style;KEYS.forEach((k,i)=>st.setProperty(k,P[i]));
+  document.querySelectorAll("[data-pal]").forEach(b=>{b.setAttribute("aria-pressed",b.dataset.pal===palName);const Q=PAL[b.dataset.pal][isDark()?"d":"l"];b.querySelectorAll("i").forEach((x,i)=>x.style.background=Q[i]);});}
+try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",applyPal);}catch(e){}
+try{new MutationObserver(applyPal).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});}catch(e){}
+applyPal();
+$("lean").addEventListener("change",e=>{S.lean=e.target.checked;draw();});
+$("tgOn").onclick=()=>{S.target=S.target?null:defaultTarget();draw();};
+function defaultTarget(){const f=S.f;if(f.basin.on)return{x:f.basin.wall-f.basin.dep*.55,y:f.basin.h-50};if(f.shower.on)return{x:f.shower.rw-20,y:f.shower.vh};if(f.toilet.on)return{x:f.toilet.px,y:f.toilet.ph};if(f.desk.on)return{x:f.desk.x0+(f.desk.x1-f.desk.x0)*.57,y:f.desk.h+40};if(f.upper.on)return{x:f.upper.x0+120,y:f.upper.t-150};if(f.counter.on)return{x:f.counter.x0+410,y:f.counter.h+40};return{x:S.x+700,y:1300};}
+
+const FI=[["fChair","chair","on"],["chairH","chair","h"],["chairD","chair","d"],["fDesk","desk","on"],["deskH","desk","h"],["fCounter","counter","on"],["counterH","counter","h"],["fUpper","upper","on"],["upperB","upper","b"],["upperT","upper","t"],["fBed","bed","on"],["bedH","bed","h"],["bedL","bed","L"],["fToi","toilet","on"],["toiH","toilet","h"],["fBath","bath","on"],["bathRim","bath","rim"],["bathL","bath","L"],["fBasin","basin","on"],["basinH","basin","h"],["basinHB","basin","hb"],["mirB","basin","mb"],["mirT","basin","mt"],["fShower","shower","on"],["showerHH","shower","hh"],["valveH","shower","vh"],["shelfH","shower","sh"],["sseatH","shower","seatH"]];
+function syncFurn(){FI.forEach(([id,o,k])=>{const el=$(id);if(k==="on")el.checked=S.f[o].on;else el.value=S.f[o][k];});}
+FI.forEach(([id,o,k])=>{$(id).addEventListener(k==="on"?"change":"input",e=>{pushUndoThrottled();S.f[o][k]=k==="on"?e.target.checked:+e.target.value;draw();});});
+
+// ---------- 되돌리기 ----------
+const UNDO=[];
+const snap=()=>JSON.stringify({pose:S.pose,x:S.x,mode:S.mode,f:S.f,target:S.target,scene:S.scene,sm:S.sm});
+function pushUndo(){const v=snap();if(UNDO[UNDO.length-1]!==v)UNDO.push(v);if(UNDO.length>40)UNDO.shift();$("undoBtn").disabled=false;}
+let lastSlidePush=0;const pushUndoThrottled=()=>{const t=performance.now();if(t-lastSlidePush>900)pushUndo();lastSlidePush=t;};
+$("undoBtn").onclick=()=>{const v=UNDO.pop();if(!v)return;cancelTween();stsReset();const o=JSON.parse(v);
+  if(o.scene!==S.scene){S.scene=o.scene;showPresets();}
+  S.pose=o.pose;S.x=o.x;S.mode=o.mode;S.f=o.f;S.target=o.target;if(o.sm)S.sm=o.sm;bedLabels();showPresets();renderSmode();syncFurn();$("undoBtn").disabled=!UNDO.length;draw();};
+// ---------- 기본 자세 사이를 부드럽게 전환 ----------
+let tween=0;
+function cancelTween(){if(tween){cancelAnimationFrame(tween);tween=0;if(S.mode==="fix")S.mode=S.tweenEnd||"floor";}}
+function goPreset(p){cancelTween();pushUndo();stsReset();S.target=null;
+  const rb=refBody(),hip0=rb?rb.hip.slice():null,a={pose:Object.assign({},S.pose),x:S.x,cx:S.f.chair.x};
+  setPose(p);place(p);
+  const b={pose:Object.assign({},S.pose),x:S.x,cx:S.f.chair.x,mode:S.mode};
+  if(!hip0||matchMedia("(prefers-reduced-motion: reduce)").matches){draw();return;}
+  const H=S.me.H,end=body(H,b.pose,b.mode,b.x,curSeat(),meRatios()).hip[1];
+  const t0=performance.now(),dur=650,K=["t","n","ua","el","th","kn"],ease=v=>v<.5?2*v*v:1-Math.pow(-2*v+2,2)/2;
+  S.tweenEnd=b.mode;
+  const step=now=>{const k=clamp((now-t0)/dur,0,1),e=ease(k);
+    K.forEach(q=>S.pose[q]=a.pose[q]+(b.pose[q]-a.pose[q])*e);
+    S.x=a.x+(b.x-a.x)*e;S.f.chair.x=Math.round(a.cx+(b.cx-a.cx)*e);
+    if(k<1){S.mode="fix";S.hipY=hip0[1]+(end-hip0[1])*e;draw();tween=requestAnimationFrame(step);}
+    else{tween=0;Object.assign(S.pose,b.pose);S.x=b.x;S.f.chair.x=b.cx;S.mode=b.mode;draw();}};
+  S.pose=Object.assign({},a.pose);S.x=a.x;S.f.chair.x=a.cx;tween=requestAnimationFrame(step);}
+document.querySelectorAll("#presets button[data-p]").forEach(b=>b.onclick=()=>goPreset(b.dataset.p));
+function setPose(p){const q=PRE[p];Object.assign(S.pose,{t:q.t,n:q.n,ua:q.ua,el:q.el,th:q.th,kn:q.kn});S.mode=q.mode;S.pushChair=true;
+  if(q.mode==="seat"&&!FIXED_SEAT.includes(S.scene)){S.f.chair.on=true;S.f.chair.x=Math.round(S.x-130);}syncFurn();}
+// 장면별 가구에 맞추어 사람 위치를 잡음
+function place(p){const H=S.me.H,r=meRatios(),f=S.f;
+  if(!FIXED_SEAT.includes(S.scene)&&f.chair.on&&!f.chair.wc&&p==="stand"){S.x=Math.round(f.chair.x+f.chair.d+160);return;}
+  if(S.scene==="bed"&&f.bed.sofa){const b=f.bed,bx=b.x+140;
+    if(p==="sofa")S.x=Math.round(bx+.07*H+Math.sin(rad(15))*r.trunk*H);
+    else if(p==="sit")S.x=Math.round(bx+.11*H);
+    else if(p==="stand")S.x=Math.round(b.x+b.L+250);return;}
+  if(S.scene==="bed"){const b=f.bed;
+    if(p==="lie")S.x=Math.round(b.x+90+(r.trunk+r.neck+r.head)*H);
+    else if(p==="recline")S.x=Math.round(b.x+60+.07*H+Math.sin(rad(25))*r.trunk*H);
+    else if(p==="bedge"||p==="sit")S.x=Math.round(b.x+b.L-120);
+    else if(p==="stand")S.x=Math.round(b.x+b.L+250);}
+  else if(S.scene==="toilet"){const t=f.toilet;if(p==="tsit"||p==="sit")S.x=t.wall+340;else if(p==="stand")S.x=t.wall+800;}
+  else if(S.scene==="bath"){const b=f.bath,ix0=b.x+b.wt;b.onRim=p==="rimsit";if(p==="blie")S.x=ix0+b.sl+40;else if(p==="bsit")S.x=ix0+250;else if(p==="rimsit")S.x=b.x+b.L-50;else if(p==="stand")S.x=b.x+b.L+320;}
+  else if(S.scene==="basin"){const b=f.basin,fr=b.wall-b.dep;if(!f.chair.wc)S.x=Math.round(fr-.11*H-40);if(p==="wash")S.target={x:Math.round(fr+b.dep*.45),y:b.h-50};}
+  else if(S.scene==="shower"){const w=f.shower;if(p==="ssit")S.x=Math.round(w.lw+.1*H);else if(p==="hair")S.x=Math.round(w.lw+320);else S.x=Math.round(w.lw+430);}}
+
+// 장면 세부 유형: 책상(필기·모니터·노트북), 주방(작업 유형), 침대·소파
+const SMODE={study:[["write","필기"],["pc","모니터"],["laptop","노트북"]],kitchen:[["precise","정밀 작업"],["light","경작업"],["heavy","중작업"]]};
+const SMLAB={study:"작업",kitchen:"작업 유형",bed:"가구"};
+// Grandjean(1988): 선 작업면 높이 = 팔꿈치 높이 기준 정밀 +50~+100, 경작업 −100~−150, 중작업 −150~−400
+const TASK={precise:{lo:50,hi:100,fit:75,name:"정밀 작업(제도·조립)"},light:{lo:-150,hi:-100,fit:-125,name:"경작업(조리·세척)"},heavy:{lo:-400,hi:-150,fit:-250,name:"중작업(반죽·포장)"}};
+function bedLabels(){const so=S.f.bed.sofa,q=(id,t)=>{const l=document.querySelector(`label[for="${id}"]`);if(l)l.textContent=t;};
+  q("bedH",so?"소파 좌면높이":"침대 높이");q("bedL",so?"소파 깊이(등받이 포함)":"침대 길이");}
+function renderSmode(){const box=$("smode"),L=SMODE[S.scene];if(!box)return;
+  if(!L){box.hidden=true;box.innerHTML="";return;}box.hidden=false;
+  box.innerHTML=`<span class="lab">${SMLAB[S.scene]}</span>`+L.map(([v,t])=>`<button class="chip" data-sm="${v}" aria-pressed="${S.sm[S.scene]===v}">${t}</button>`).join("");
+  box.querySelectorAll("button").forEach(b=>b.onclick=()=>{cancelTween();pushUndo();S.sm[S.scene]=b.dataset.sm;applySm(false);draw();});}
+function applySm(init){const n=S.scene,v=S.sm[n],f=S.f;
+  if(n==="study"){const m=f.mon,d=f.desk;m.on=v!=="write";m.mode=v;
+    if(v==="pc"){m.dx=Math.min(d.x1-d.x0-30,400);m.dh=430;}
+    if(v==="laptop"){m.dx=330;m.lift=0;}
+    if(!f.chair.wc){S.x=f.chair.x+130;setPose(v==="write"?"write":"type");}}
+  else if(n==="kitchen"){f.counter.task=v;}
+  else if(n==="bed"){const b=f.bed;b.sofa=v==="sofa";
+    if(b.sofa){b.x=-300;b.L=700;b.h=420;b.hb=850;setPose("sofa");place("sofa");}
+    else{b.x=-300;b.L=2000;b.h=450;b.hb=950;setPose("recline");place("recline");}
+    bedLabels();}
+  syncFurn();showPresets();renderSmode();stsReset();}
+// 모니터·노트북 기하: 화면 상단·중앙, 키보드 윗면 높이
+const LAP={d:240,t:18,sc:220,tilt:15};
+const BTH=150; // 세면대 두께(고정): 하단 = 상단 − 150
+function monGeo(){const m=S.f.mon,d=S.f.desk,mx=d.x0+clamp(m.dx,m.mode==="laptop"?LAP.d:250,d.x1-d.x0-20);
+  if(m.mode==="laptop"){const y0=d.h+m.lift,hx=mx,hy=y0+LAP.t,a=rad(LAP.tilt),top=[hx+Math.sin(a)*LAP.sc,hy+Math.cos(a)*LAP.sc];
+    return{lap:true,y0,hinge:[hx,hy],top,cen:lerp([hx,hy],top,.5),kbY:hy,kbX:[hx-LAP.d+20,hx-60]};}
+  const top=[mx,d.h+m.dh],bot=[mx,d.h+m.dh-330];return{lap:false,top,bot,cen:lerp(top,bot,.5),kbY:d.h+30,kbX:[d.x0+60,d.x0+210]};}
+function showPresets(){const L=PRESETS[S.scene==="bed"&&S.f.bed.sofa?"sofa":S.scene]||PRESETS.free;document.querySelectorAll("#presets button[data-p]").forEach(b=>{b.hidden=!L.includes(b.dataset.p);});}
+document.querySelectorAll("#scenes button").forEach(b=>b.onclick=()=>{cancelTween();pushUndo();scene(b.dataset.scene);draw();});
+function scene(n){
+  S.scene=n;if(typeof V!=="undefined"){V.ox=V.oy=0;wantSize=true;}const f=S.f;
+  ["chair","desk","mon","counter","upper","bed","toilet","bath","basin","shower"].forEach(k=>f[k].on=false);f.bed.sofa=false;f.bath.onRim=false;
+  f.chair.wc=false;f.chair.h=450;f.chair.d=420;f.chair.bh=420;
+  if(n==="study"){f.chair.on=true;f.desk.on=true;S.x=130;setPose("write");f.chair.x=0;}
+  else if(n==="kitchen"){f.counter.on=true;f.upper.on=true;setPose("counter");S.x=170;}
+  else if(n==="bed"){f.bed.on=true;setPose("recline");place("recline");}
+  else if(n==="toilet"){f.toilet.on=true;setPose("tsit");place("tsit");}
+  else if(n==="bath"){f.bath.on=true;setPose("blie");place("blie");}
+  else if(n==="basin"){f.basin.on=true;setPose("stand");place("stand");}
+  else if(n==="shower"){f.shower.on=true;setPose("stand");place("stand");}
+  else {setPose("stand");S.x=300;}
+  syncFurn();S.target=null;if(SMODE[n])applySm(true);else{bedLabels();showPresets();renderSmode();}stsReset();
+}
+
+// ---------- 앉는 면(의자·휠체어·침대·변기·욕조) ----------
+function curSeat(){const f=S.f;
+  if(S.scene==="bed"&&f.bed.on){const b=f.bed,bk=b.sofa?140:60;return{kind:"bed",sofa:b.sofa,label:b.sofa?"소파":"침대",h:b.h,x0:b.x+bk,x1:b.x+b.L,back:b.x+bk,floor:0,movable:false};}
+  if(S.scene==="toilet"&&f.toilet.on){const t=f.toilet;return{kind:"toilet",label:"변기",h:t.h,x0:t.wall+200,x1:t.wall+650,back:t.wall+200,floor:0,movable:false};}
+  if(S.scene==="bath"&&f.bath.on&&f.bath.onRim){const b=f.bath;return{kind:"rim",label:"욕조 턱",h:b.rim,x0:b.x+b.L-b.wt-140,x1:b.x+b.L,back:null,floor:0,movable:false};}
+  if(S.scene==="shower"&&f.shower.on&&S.mode!=="floor"){const w=f.shower;return{kind:"shower",label:"샤워 의자",h:w.seatH,x0:w.lw,x1:w.lw+w.seatD,back:w.lw,floor:0,movable:false};}
+  if(S.scene==="bath"&&f.bath.on){const b=f.bath;return{kind:"bath",label:"욕조 바닥",h:b.bot,x0:b.x+b.wt,x1:b.x+b.L-b.wt,back:b.x+b.wt,floor:b.bot,movable:false};}
+  if(f.chair.on){const c=f.chair;return{kind:c.wc?"wc":"chair",label:"좌면",h:c.h,x0:c.x-30,x1:c.x+c.d,back:c.x-30,floor:c.wc?140:0,movable:true};}
+  return null;}
+// 휠체어에서 가구와 부딪힐 수 있는 부분 [x, y, 반지름]
+function wcParts(){const c=S.f.chair;return[[c.x+c.d+230,125,15],[c.x+c.d-40,c.h+250,15],[c.x+c.d+60,60,60]];}
+function setWC(on){const f=S.f,c=f.chair;STS=null;
+  if(on){c.on=true;c.wc=true;c.h=480;c.d=430;c.bh=480;
+    const bs=f.basin;S.x=(S.scene==="kitchen"?-560:S.scene==="study"?-60:S.scene==="basin"?bs.wall-bs.dep-c.d-230+150:0)+130;S.target=null;setPose("sit");}
+  else{c.wc=false;c.h=450;c.d=420;c.bh=420;
+    if(S.scene==="kitchen"){c.on=false;setPose("counter");S.x=170;}
+    else if(S.scene==="basin"){c.on=false;setPose("stand");place("stand");}
+    else if(S.scene==="study"){S.x=130;setPose("write");c.x=0;}}
+  syncFurn();stsReset();}
+$("wcOn").onclick=()=>{cancelTween();pushUndo();setWC(!S.f.chair.wc);draw();};
+// 앉았다 일어서기: 발은 고정하고 골반 경로와 상체 기울기를 단계별로 보간
+let STS=null,stsRaf=0;
+function stsReset(){STS=null;cancelAnimationFrame(stsRaf);stsRaf=0;S.stsP=0;const e=$("stsP");if(e){e.value=0;$("stsV").textContent="0%";$("stsPlay").textContent="앉았다 일어서기 ▶";}}
+function stsOK(){const st=curSeat();return !!st&&["chair","toilet","bed","rim","shower"].includes(st.kind);}
+function stsBegin(){if(!stsOK())return false;cancelTween();pushUndo();
+  const st=curSeat(),pre=st.kind==="toilet"?"tsit":st.kind==="bed"?(st.sofa?"sit":"bedge"):st.kind==="rim"?"rimsit":st.kind==="shower"?"ssit":"sit";
+  if(S.mode!=="seat"||(st.kind==="bed"&&!st.sofa)){setPose(pre);place(pre);}
+  S.target=null;draw();
+  const ref=refBody();if(!ref)return false;const H=ref.H,r=ref.R;
+  STS={H,R:r,hip0:ref.hip.slice(),A:[ref.hip[0]+r.th*H-.035*H,r.ank*H],P0:Object.assign({},S.pose),seatY:st.h+.055*H};return true;}
+function pw(pts,v){for(let i=1;i<pts.length;i++){if(v<=pts[i][0]){const[a,x]=pts[i-1],[b,y]=pts[i];return x+(y-x)*((v-a)/(b-a||1));}}return pts[pts.length-1][1];}
+function stsSet(v){if(!STS&&!stsBegin())return;const{H,A,hip0,P0,seatY}=STS;R=STS.R;S.stsP=v;
+  const standY=(R.ank+R.sh+R.th)*H-4, e=clamp((v-.45)/.55,0,1), sm=e*e*(3-2*e);
+  const hx=hip0[0]+pw([[0,0],[.42,0],[.6,.05*H],[1,(A[0]-.01*H)-hip0[0]]],v), hy=seatY+(standY-seatY)*sm;
+  S.pose.t=Math.round(pw([[0,P0.t],[.38,40],[.55,43],[.8,16],[1,0]],v));
+  S.pose.n=Math.round(pw([[0,P0.n],[.5,15],[1,0]],v));
+  S.pose.ua=Math.round(pw([[0,P0.ua],[.38,55],[.6,48],[1,6]],v));
+  S.pose.el=Math.round(pw([[0,P0.el],[.38,15],[1,10]],v));S.pose.wr=0;
+  const lg=legIK(H,[hx,hy],A);S.pose.th=Math.round(lg.th);S.pose.kn=Math.round(lg.kn);
+  S.x=Math.round(hx);S.mode=hy<=seatY+2?"seat":"floor";S.pushChair=false;S.target=null;
+  $("stsP").value=Math.round(v*100);$("stsV").textContent=Math.round(v*100)+"%";}
+$("stsP").addEventListener("input",e=>{cancelAnimationFrame(stsRaf);stsRaf=0;stsSet(+e.target.value/100);draw();});
+$("stsPlay").onclick=()=>{if(stsRaf){cancelAnimationFrame(stsRaf);stsRaf=0;return;}
+  if(!STS&&!stsBegin())return;const from=S.stsP||0,to=from>=.99?0:1,t0=performance.now(),dur=2600;
+  $("stsPlay").textContent=to===1?"일어서는 중… ■":"앉는 중… ■";
+  const step=now=>{const k=clamp((now-t0)/dur,0,1);stsSet(from+(to-from)*k);draw();
+    if(k<1)stsRaf=requestAnimationFrame(step);else{stsRaf=0;$("stsPlay").textContent=to===1?"다시 앉기 ◀":"앉았다 일어서기 ▶";}};
+  stsRaf=requestAnimationFrame(step);};
+
+// ---------- 기하 ----------
+const rad=a=>a*Math.PI/180, deg=r=>r*180/Math.PI;
+const dn=a=>[Math.sin(rad(a)),-Math.cos(rad(a))], up=a=>[Math.sin(rad(a)),Math.cos(rad(a))];
+const add=(p,v,l)=>[p[0]+v[0]*l,p[1]+v[1]*l];
+const lerp=(p,q,k)=>[p[0]+(q[0]-p[0])*k,p[1]+(q[1]-p[1])*k];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+function legBase(H,P,mode,hx,chairH){
+  const K=add([0,0],dn(P.th),R.th*H), A=add(K,dn(P.th-P.kn),R.sh*H);
+  const sole=A[1]-R.ank*H;
+  const dy= mode==="seat" ? chairH+.055*H : mode==="fix" ? S.hipY : -sole;
+  return {dy,hx};
+}
+function shoulderAt(H,t,base){return [base.hx+R.trunk*H*Math.sin(rad(t)), base.dy+R.trunk*H*Math.cos(rad(t))];}
+
+// 손끝을 목표점에 맞추는 2절 역기구학(위팔 / 아래팔+손), 필요시 몸통 기울기 탐색
+function solveIK(H,P,base,T){
+  const wr=0, fa=R.fa*H, hd=GRIP*R.hand*H;
+  // 손목이 꺾이면 팔꿈치→손끝을 하나의 등가 링크로 봄
+  const L1=R.ua*H, L2=Math.hypot(fa+hd*Math.cos(wr),hd*Math.sin(wr)), dl=deg(Math.atan2(hd*Math.sin(wr),fa+hd*Math.cos(wr))), reach=L1+L2;
+  const dist=t=>{const s=shoulderAt(H,t,base);return Math.hypot(T.x-s[0],T.y-s[1]);};
+  let t=P.t, reached=dist(t)<=reach*0.999;
+  if(!reached && S.lean){
+    let best=null;
+    for(let k=1;k<=110&&!best;k++){
+      for(const c of [P.t+k,P.t-k]){ if(c<-20||c>90)continue; if(dist(c)<=reach*0.999){best=c;break;} }
+    }
+    if(best!==null){t=best;reached=true;}
+    else { let bt=t,bd=dist(t); for(let c=-20;c<=90;c++){const d=dist(c);if(d<bd){bd=d;bt=c;}} t=bt; }
+  }
+  const s=shoulderAt(H,t,base), dx=T.x-s[0], dyv=T.y-s[1], D=Math.max(1,Math.hypot(dx,dyv));
+  const phi=deg(Math.atan2(dx,-dyv));
+  let ua,el;
+  if(D>=reach){ua=phi;el=-dl;}
+  else{
+    const Dc=Math.max(D,Math.abs(L1-L2)+1);
+    const alpha=deg(Math.acos(clamp((L1*L1+Dc*Dc-L2*L2)/(2*L1*Dc),-1,1)));
+    const beta=deg(Math.acos(clamp((L1*L1+L2*L2-Dc*Dc)/(2*L1*L2),-1,1)));
+    ua=phi-alpha; el=180-beta-dl;
+  }
+  return {t,ua,el,reached:D<=reach*1.001,gap:Math.max(0,D-reach),leaned:t-P.t};
+}
+
+function twoLink(L1,L2,D){const Dc=Math.max(D,Math.abs(L1-L2)+1);
+  return {alpha:deg(Math.acos(clamp((L1*L1+Dc*Dc-L2*L2)/(2*L1*Dc),-1,1))),beta:deg(Math.acos(clamp((L1*L1+L2*L2-Dc*Dc)/(2*L1*L2),-1,1)))};}
+// 골반에서 발목 위치로 다리 2절 역기구학(무릎은 앞으로 굽음)
+function legIK(H,hip,a){const L1=R.th*H,L2=R.sh*H,dx=a[0]-hip[0],dy=a[1]-hip[1],D=Math.hypot(dx,dy),phi=deg(Math.atan2(dx,-dy));
+  if(D>=L1+L2-.5)return{th:clamp(phi,-30,140),kn:0};const k=twoLink(L1,L2,D);return{th:clamp(phi+k.alpha,-30,140),kn:clamp(180-k.beta,0,160)};}
+// 골반에서 머리 중심으로 몸통·목 2절 역기구학
+function headIK(H,hip,p){const L1=R.trunk*H,L2=R.neck*H,vx=p.x-hip[0],vy=p.y-hip[1],D=Math.hypot(vx,vy),psi=deg(Math.atan2(vx,vy));
+  if(D>=L1+L2-.5)return{t:clamp(psi,-20,90),n:0};const k=twoLink(L1,L2,D);return{t:clamp(psi-k.alpha,-20,90),n:clamp(180-k.beta,-40,60)};}
+
+function body(H,P0,mode,hx,seat,rp){
+  R=rp||BASE;
+  const sh=seat?seat.h:450, fl=seat?seat.floor:0;
+  const base=legBase(H,P0,mode,hx,sh);
+  let P=Object.assign({},P0), ik=null;
+  if(S.target){ik=solveIK(H,P,base,S.target);P.t=ik.t;P.ua=ik.ua;P.el=ik.el;}
+  const T=p=>[p[0]+base.hx,p[1]+base.dy];
+  const hip0=[0,0];
+  const Sh0=add(hip0,up(P.t),R.trunk*H);
+  const a=P.t+P.n, Hc0=add(Sh0,up(a),R.neck*H);
+  const fwd=[Math.cos(rad(a)),-Math.sin(rad(a))];
+  const eye0=add(add(Hc0,fwd,.04*H),up(a),.005*H);
+  const E0=add(Sh0,dn(P.ua),R.ua*H), W0=add(E0,dn(P.ua+P.el),R.fa*H), F0=add(W0,dn(P.ua+P.el),GRIP*R.hand*H);P.wr=0;
+  // 앉은 자세에서 발이 바닥 아래로 내려가면, 발은 바닥에 두고 무릎을 더 굽혀 다리를 접음
+  let adj=false;
+  if(mode==="seat"){const K1=add(hip0,dn(P.th),R.th*H),A1=add(K1,dn(P.th-P.kn),R.sh*H);
+    // 침대 위에 있는 발은 바닥이 아니라 매트리스 윗면에 닿음
+    const axw=A1[0]+base.hx, flA=(seat&&seat.kind==="bed"&&axw>seat.x0&&axw<seat.x1-20)?seat.h:fl;
+    if(A1[1]-R.ank*H+base.dy<flA){const r=legIK(H,hip0,[A1[0],flA+R.ank*H-base.dy]);P.th=r.th;P.kn=r.kn;adj=true;}}
+  const K0=add(hip0,dn(P.th),R.th*H), A0=add(K0,dn(P.th-P.kn),R.sh*H);
+  const b={H,P,ik,adj,hip:T(hip0),Sh:T(Sh0),Hc:T(Hc0),eye:T(eye0),E:T(E0),W:T(W0),F:T(F0),K:T(K0),A:T(A0)};
+  b.sole=b.A[1]-R.ank*H;
+  // 발: 서 있거나 다리를 내린 자세는 바닥에 평행, 다리를 앞으로 뻗은 자세(눕기 등)는 정강이를 따라 회전
+  const sA=P.th-P.kn, fr=(mode==="seat"&&sA>40)?rad(sA):0, cs=Math.cos(fr), sn=Math.sin(fr);
+  const frot=(dx,dy)=>[b.A[0]+dx*cs-dy*sn,b.A[1]+dx*sn+dy*cs];
+  b.heel=frot(-.04*H,-R.ank*H); b.toe=frot(.11*H,-R.ank*H);
+  b.reachMax=(R.ank+R.sh+R.th+R.trunk)*H+(R.ua+R.fa+GRIP*R.hand)*H;b.R=R;
+  // 무게중심
+  const segs=[[b.Hc,M.head],[lerp(b.hip,b.Sh,.5),M.trunk],[lerp(b.Sh,b.E,.436),M.ua],[lerp(b.E,b.W,.43),M.fa],[lerp(b.W,b.F,.5),M.hand],
+    [lerp(b.hip,b.K,.433),M.th],[lerp(b.K,b.A,.433),M.sh],[lerp(b.A,lerp(b.heel,b.toe,.5),.5),M.foot]];
+  b.com=segs.reduce((s,[p,m])=>[s[0]+p[0]*m,s[1]+p[1]*m],[0,0]);
+  // 지지면
+  const feetOn=mode==="floor"||b.sole-fl<=20;
+  let lo=Infinity,hi=-Infinity;
+  if(feetOn){lo=Math.min(b.heel[0],b.toe[0]);hi=Math.max(b.heel[0],b.toe[0]);}
+  if(mode==="seat"&&seat){
+    // 앉는 면에 닿아 있는 몸 부위(엉덩이·허벅지·등·다리)가 지지면이 됨
+    const lim=seat.h+.16*H;
+    for(let k=0;k<=1.0001;k+=.1)[lerp(b.hip,b.K,k),lerp(b.K,b.A,k),lerp(b.hip,b.Sh,k),lerp(b.Sh,b.Hc,k)].forEach(p=>{
+      if(p[1]<lim&&p[0]>=seat.x0-10&&p[0]<=seat.x1+10){lo=Math.min(lo,p[0]);hi=Math.max(hi,p[0]);}});
+    if(seat.back!=null&&(seat.kind==="chair"||seat.kind==="wc"||P.t<-5))lo=Math.min(lo,seat.back); // 등받이·헤드보드·욕조 경사면
+  }
+  b.handSup=false;
+  if(S.f.desk.on){const d=S.f.desk;[b.F,b.W].forEach(p=>{if(p[0]>=d.x0-10&&p[0]<=d.x1+10&&Math.abs(p[1]-d.h)<45){lo=Math.min(lo,p[0]);hi=Math.max(hi,p[0]);b.handSup=true;}});}
+  b.sup=[lo,hi];
+  b.comOut=b.com[0]<lo?lo-b.com[0]:(b.com[0]>hi?b.com[0]-hi:0);
+  // 충돌: 무릎·허벅지와 책상 하부
+  b.hit=[];
+  if(S.f.desk.on){
+    const under=S.f.desk.h-30, x0=S.f.desk.x0, x1=S.f.desk.x1, thick=.045*H;
+    for(let k=0;k<=1.0001;k+=.1){const p=lerp(b.hip,b.K,k);if(p[0]>=x0&&p[0]<=x1&&p[1]+thick>under){b.hit.push(p);}}
+    b.kneeGap=(b.K[0]>=x0&&b.K[0]<=x1)?under-(b.K[1]+thick):null;
+  }
+  return b;
+}
+
+// ---------- 그리기 ----------
+const svg=$("cv");
+const el=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);(p||svg).appendChild(e);return e;};
+const Y=y=>-y;
+function line(p,q,w,c,parent,extra){return el("line",Object.assign({x1:p[0],y1:Y(p[1]),x2:q[0],y2:Y(q[1]),stroke:c,"stroke-width":w,"stroke-linecap":"round"},extra||{}),parent);}
+
+// U = 화면 1px에 해당하는 도면 단위(mm). 선 굵기·글자 크기는 U로 환산해 어떤 화면에서도 일정한 픽셀 크기로 보이게 함
+let U=2.5, VB=[-450,-2450,1850,2610];
+function drawGrid(){
+  const g=el("g",{}),[vx,vy,vw,vh]=VB,top=-vy,x0=Math.floor(vx/100)*100,x1=vx+vw;
+  for(let x=x0;x<=x1;x+=100) el("line",{x1:x,y1:Y(0),x2:x,y2:Y(top),stroke:x%500===0?"var(--grid2)":"var(--grid)","stroke-width":(x%500===0?1.1:.6)*U},g);
+  for(let y=0;y<=top;y+=100) el("line",{x1:vx,y1:Y(y),x2:x1,y2:Y(y),stroke:y%500===0?"var(--grid2)":"var(--grid)","stroke-width":(y%500===0?1.1:.6)*U},g);
+  for(let y=500;y<top;y+=500){const t=el("text",{x:vx+4*U,y:Y(y)-3*U,"font-size":11*U,fill:"var(--muted)","font-family":"IBM Plex Mono, monospace"},g);t.textContent=y;}
+  el("rect",{x:vx,y:0,width:vw,height:vy+vh,fill:"var(--grid2)",opacity:.35},g);
+  el("line",{x1:vx,y1:0,x2:x1,y2:0,stroke:"var(--fg)","stroke-width":1.8*U},g);
+  // 천장(2,400): 모든 장면 공통. 천장 위는 어둡게 처리
+  if(-vy>CEIL){el("rect",{x:vx,y:vy,width:vw,height:-vy-CEIL,fill:"var(--grid2)",opacity:.45},g);
+    el("line",{x1:vx,y1:Y(CEIL),x2:x1,y2:Y(CEIL),stroke:"var(--fg)","stroke-width":1.4*U,"stroke-dasharray":`${6*U} ${3*U}`},g);
+    const t=el("text",{x:x1-6*U,y:Y(CEIL)-4*U,"font-size":11*U,fill:"var(--muted)","text-anchor":"end","font-family":"IBM Plex Sans KR, sans-serif"},g);t.textContent="천장 2,400";}
+}
+function furnBounds(){const f=S.f,b=[];
+  if(f.chair.on){const c=f.chair;if(c.wc)b.push([c.x-240,0,c.x+c.d+230,c.h+c.bh]);else b.push([c.x-30,0,c.x+c.d,c.h+c.bh]);}
+  if(f.bed.on)b.push([f.bed.x,0,f.bed.x+f.bed.L,Math.max(f.bed.hb,f.bed.h)]);
+  if(f.toilet.on)b.push([f.toilet.wall,0,f.toilet.wall+650,780]);
+  if(f.bath.on)b.push([f.bath.x,0,f.bath.x+f.bath.L,f.bath.rim]);
+  if(f.basin.on)b.push([f.basin.wall-f.basin.dep,0,f.basin.wall+40,f.basin.mt]);
+  if(f.shower.on)b.push([f.shower.lw-40,0,f.shower.rw+40,f.shower.hh+60]);
+  if(f.desk.on)b.push([f.desk.x0,0,f.desk.x1,f.desk.h]);
+  if(f.counter.on)b.push([f.counter.x0,0,950,f.counter.h]);
+  if(f.upper.on)b.push([f.upper.x0,f.upper.b,950,f.upper.t]);
+  return b;}
+function deskPen(B){const d=S.f.desk,H=B.H,top=d.h,under=d.h-30,po=d.x0+Math.min(150,(d.x1-d.x0)*.3),pb=d.h-130;let pen=0;
+  for(let k=0;k<=1.0001;k+=.1){
+    const t=lerp(B.hip,B.Sh,k),tt=.06*H;               // 몸통 앞면이 상판 높이에 걸림
+    if(t[1]>=under-tt&&t[1]<=top+tt)pen=Math.max(pen,t[0]+tt-d.x0);
+    const q=lerp(B.hip,B.K,k),qt=.0425*H;              // 허벅지·무릎
+    if(q[1]+qt>under&&q[1]-qt<top)pen=Math.max(pen,q[0]+qt-d.x0);
+    else if(q[1]+qt>pb&&q[1]-qt<under)pen=Math.max(pen,q[0]+qt-po);
+    const r=lerp(B.K,B.A,k),rt=.03*H;                  // 정강이와 가림판
+    if(r[1]+rt>pb&&r[1]-rt<under)pen=Math.max(pen,r[0]+rt-po);}
+  const st=curSeat();
+  if(S.mode==="seat"&&st&&st.kind==="wc")wcParts().forEach(([x,y,q])=>{if(y+q>under&&y-q<top)pen=Math.max(pen,x+q-d.x0);else if(y+q>pb&&y-q<under)pen=Math.max(pen,x+q-po);});
+  return pen;}
+// 몸이 뚫고 들어가면 안 되는 면(작업대 하부장, 화장실 문, 욕조 끝벽)
+function obstacles(){const f=S.f,o=[];
+  if(f.counter.on){const a=f.counter.x0;o.push({x0:a,x1:950,y0:f.counter.h-30,y1:f.counter.h},{x0:a+60,x1:950,y0:100,y1:f.counter.h-30},{x0:a+110,x1:950,y0:0,y1:100});}
+  if(f.toilet.on)o.push({x0:f.toilet.door,x1:f.toilet.door+40,y0:0,y1:2100});
+  if(f.bath.on&&!f.bath.onRim){const ix1=f.bath.x+f.bath.L-f.bath.wt;o.push({x0:ix1,x1:ix1+f.bath.wt,y0:0,y1:f.bath.rim});}
+  if(f.basin.on){const b=f.basin;o.push({x0:b.wall-b.dep,x1:b.wall,y0:b.hb,y1:b.h},{x0:b.wall,x1:b.wall+40,y0:0,y1:2400});}
+  if(f.shower.on)o.push({x0:f.shower.rw,x1:f.shower.rw+40,y0:0,y1:2400});
+  return o;}
+function samples(B){const H=B.H,s=[],seg=(a,b,r)=>{for(let k=0;k<=1.0001;k+=.1){const p=lerp(a,b,k);s.push([p[0],p[1],r]);}};
+  seg(B.hip,B.Sh,.06*H);seg(B.hip,B.K,.0425*H);seg(B.K,B.A,.03*H);s.push([B.Hc[0],B.Hc[1],B.R.head*H]);s.push([B.toe[0],B.toe[1],12]);
+  const st=curSeat();if(S.mode==="seat"&&st&&st.kind==="wc")wcParts().forEach(p=>s.push(p));
+  return s;}
+function rectPen(B){const o=obstacles();if(!o.length)return 0;let pen=0;
+  samples(B).forEach(([x,y,r])=>o.forEach(q=>{if(y+r>q.y0&&y-r<q.y1&&x+r>q.x0&&x-r<q.x1)pen=Math.max(pen,x+r-q.x0);}));return pen;}
+function onDesk(x,y,lift){return y;
+  const d=S.f.desk;if(!d.on||x<d.x0-15||x>d.x1+15)return y;if(y<d.h+lift&&y>d.h-140)return d.h+lift;return y;}
+function furnHandles(){const f=S.f,H=[],r=v=>Math.round(v/10)*10;
+  if(f.chair.on){const c=f.chair;
+    H.push({id:"seat",p:[c.x+c.d,c.h],label:()=>`좌면 높이 ${c.h} · 깊이 ${c.d+30}`,set:w=>{c.h=clamp(r(w.y),250,700);c.d=clamp(r(w.x-c.x),250,650);}});
+    H.push({id:"back",p:[c.x-15,c.h+c.bh],lx:-1,label:()=>`등받이 ${c.bh}`,set:w=>{c.bh=clamp(r(w.y-c.h),0,800);}});
+    H.push({id:"chairM",p:[c.x+c.d/2,c.h-180],label:()=>`의자 이동 ${c.x>=0?"+":""}${c.x}`,set:(w,o)=>{const nx=clamp(r(o.cx+w.x-o.x),-700,900);if(S.mode==="seat")S.x=o.bx+(nx-o.cx);c.x=nx;}});}
+  if(f.desk.on){const d=f.desk;
+    H.push({id:"deskF",p:[d.x0,d.h],lx:-1,label:()=>`책상 높이 ${d.h} · 깊이 ${d.x1-d.x0}`,set:w=>{d.h=clamp(r(w.y),450,1250);d.x0=clamp(r(w.x),d.x1-1400,d.x1-300);}});
+    H.push({id:"deskB",p:[d.x1,d.h],label:()=>`깊이 ${d.x1-d.x0}`,set:w=>{d.x1=clamp(r(w.x),d.x0+300,d.x0+1400);}});
+    H.push({id:"deskM",p:[(d.x0+d.x1)/2,d.h],label:()=>`책상 위치 앞단 ${d.x0}`,set:(w,o)=>{const dx=r(w.x-o.x);const wd=o.x1-o.x0;d.x0=clamp(o.x0+dx,-100,1500-wd);d.x1=d.x0+wd;d.h=clamp(r(w.y),450,1250);}});}
+  if(f.counter.on){const c=f.counter;
+    H.push({id:"cnt",p:[c.x0,c.h],lx:-1,label:()=>`작업대 높이 ${c.h} · 깊이 ${950-c.x0}`,set:w=>{c.h=clamp(r(w.y),600,1150);c.x0=clamp(r(w.x),250,700);}});}
+  if(f.bed.on){const b=f.bed;
+    if(b.sofa){H.push({id:"bedH",p:[b.x+b.L,b.h],label:()=>`좌면 높이 ${b.h} · 깊이 ${b.L-140}`,set:w=>{b.h=clamp(r(w.y),250,600);b.L=clamp(r(w.x-b.x),540,1000);}});
+      H.push({id:"bedHB",p:[b.x+30,b.hb],lx:-1,label:()=>`등받이 ${b.hb}`,set:w=>{b.hb=clamp(r(w.y),b.h+150,1300);}});}
+    else{const mt=Math.min(200,b.h-120);H.push({id:"bedH",p:[b.x+b.L,Math.max(60,b.h-mt-60)],label:()=>`침대 높이 ${b.h} · 길이 ${b.L}`,set:(w,o)=>{b.h=clamp(r(o.bed.h+w.y-o.y),200,800);b.L=clamp(r(o.bed.L+w.x-o.x),1500,2500);}});
+    H.push({id:"bedHB",p:[b.x+30,b.hb],lx:-1,label:()=>`헤드보드 ${b.hb}`,set:w=>{b.hb=clamp(r(w.y),b.h+100,1600);}});}}
+  if(f.mon.on&&f.desk.on){const m=f.mon,d=f.desk,G=monGeo();
+    if(G.lap)H.push({id:"mon",p:G.top,label:()=>`노트북 받침 ${m.lift} · 화면 상단 ${fmt(monGeo().top[1])}`,set:w=>{m.lift=clamp(r(w.y-(d.h+LAP.t+LAP.sc*Math.cos(rad(LAP.tilt)))),0,450);m.dx=clamp(r(w.x-LAP.sc*Math.sin(rad(LAP.tilt))),d.x0+LAP.d,d.x1-20)-d.x0;}});
+    else H.push({id:"mon",p:G.top,label:()=>`화면 상단 ${d.h+m.dh} · 앞단에서 ${m.dx}`,set:w=>{m.dh=clamp(r(w.y)-d.h,380,800);m.dx=clamp(r(w.x),d.x0+250,d.x1-20)-d.x0;}});}
+  if(f.toilet.on){const t=f.toilet;
+    H.push({id:"toiH",p:[t.wall+650,t.h],label:()=>`변기 높이 ${t.h}`,set:w=>{t.h=clamp(r(w.y),300,600);}});
+    H.push({id:"door",p:[t.door,1100],lx:-1,label:()=>`앞 공간 ${t.door-(t.wall+650)}`,set:w=>{t.door=clamp(r(w.x),t.wall+850,t.wall+2400);}});
+    H.push({id:"paper",p:[t.px,t.ph],label:()=>`휴지걸이 높이 ${t.ph} · 앞쪽 ${t.px-(t.wall+650)}`,set:w=>{t.px=clamp(r(w.x),t.wall+250,t.door-60);t.ph=clamp(r(w.y),300,1200);}});}
+  if(f.bath.on){const b=f.bath;
+    H.push({id:"bathR",p:[b.x+b.L,b.rim],label:()=>`욕조 턱 ${b.rim} · 길이 ${b.L}`,set:w=>{b.rim=clamp(r(w.y),300,800);b.L=clamp(r(w.x-b.x),1000,2200);b.wl=Math.min(b.wl,b.rim-30);}});
+    H.push({id:"water",p:[b.x+b.L-b.wt-120,b.wl],label:()=>`수면 높이 ${b.wl}`,set:w=>{b.wl=clamp(r(w.y),b.bot+100,b.rim-30);}});}
+  if(f.basin.on){const b=f.basin;
+    H.push({id:"bsF",p:[b.wall-b.dep,b.h],lx:-1,label:()=>`세면대 높이 ${b.h} · 돌출 ${b.dep}`,set:w=>{b.h=clamp(r(w.y),600,1050);b.dep=clamp(r(b.wall-w.x),350,650);b.hb=b.h-BTH;}});
+    H.push({id:"mirB",p:[b.wall+20,b.mb],label:()=>`거울 하단 ${b.mb}`,set:w=>{b.mb=clamp(r(w.y),b.h+50,b.mt-300);}});
+    H.push({id:"mirT",p:[b.wall+20,b.mt],label:()=>`거울 상단 ${b.mt}`,set:w=>{b.mt=clamp(r(w.y),b.mb+300,2300);}});}
+  if(f.shower.on){const w=f.shower;
+    H.push({id:"shH",p:[w.rw-300,w.hh],lx:-1,label:()=>`샤워기 ${w.hh}`,set:q=>{w.hh=clamp(r(q.y),1500,2300);}});
+    H.push({id:"shV",p:[w.rw+20,w.vh],label:()=>`수전 ${w.vh}`,set:q=>{w.vh=clamp(r(q.y),600,1600);}});
+    H.push({id:"shS",p:[w.rw+20,w.sh],label:()=>`선반 ${w.sh}`,set:q=>{w.sh=clamp(r(q.y),600,2000);}});
+    H.push({id:"shSeat",p:[w.lw+w.seatD-40,Math.max(60,w.seatH-220)],label:()=>`샤워 의자 ${w.seatH}`,set:(q,o)=>{w.seatH=clamp(r(o.sh.seatH+q.y-o.y),300,600);}});}
+  if(f.upper.on){const u=f.upper;
+    H.push({id:"upB",p:[u.x0,u.b],lx:-1,label:()=>`상부장 하단 ${u.b} · 깊이 ${950-u.x0}`,set:w=>{u.b=clamp(r(w.y),900,u.t-200);u.x0=clamp(r(w.x),350,800);}});
+    H.push({id:"upT",p:[u.x0,u.t],lx:-1,label:()=>`상부장 상단 ${u.t}`,set:w=>{u.t=clamp(r(w.y),u.b+200,2600);}});}
+  return H;}
+function drawFurn(){
+  const f=S.f,g=el("g",{}),st={fill:"var(--furn-fill)",stroke:"var(--furn)","stroke-width":1.6*U,"stroke-linejoin":"round"};
+  const box=(x0,y0,x1,y1)=>el("rect",Object.assign({x:Math.min(x0,x1),y:Y(Math.max(y0,y1)),width:Math.abs(x1-x0),height:Math.abs(y1-y0)},st),g);
+  const ln=(a,b,w)=>line(a,b,(w||1.6)*U,"var(--furn)",g);
+  if(f.chair.on&&!f.chair.wc){const h=f.chair.h,d=f.chair.d,x=f.chair.x;box(x-30,h-40,x+d,h);if(f.chair.bh>0)box(x-30,h,x,h+f.chair.bh);box(x-20,0,x+10,h-40);box(x+d-40,0,x+d-10,h-40);}
+  if(f.chair.on&&f.chair.wc){const c=f.chair,x=c.x,h=c.h,d=c.d,ax=x+60;
+    el("circle",{cx:ax,cy:Y(300),r:300,fill:"none",stroke:"var(--furn)","stroke-width":2.4*U},g);
+    el("circle",{cx:ax,cy:Y(300),r:265,fill:"none",stroke:"var(--furn)","stroke-width":1*U,opacity:.7},g);
+    el("circle",{cx:ax,cy:Y(300),r:22,fill:"var(--furn)"},g);
+    ln([x,h-50],[x+d+20,h-50],1.8);ln([x+d-20,h-50],[x+d+120,150],1.8);
+    box(x+d+60,110,x+d+230,140);
+    ln([x+d+20,h-50],[x+d+60,60],1.6);el("circle",{cx:x+d+60,cy:Y(60),r:60,fill:"var(--furn-fill)",stroke:"var(--furn)","stroke-width":1.6*U},g);
+    box(x,h-50,x+d,h);box(x-30,h-60,x,h+c.bh);ln([x-30,h+c.bh],[x-120,h+c.bh-10],2);
+    ln([x+40,h],[x+40,h+235]);ln([x+d-60,h],[x+d-60,h+235]);box(x+20,h+235,x+d-40,h+265);
+    ln([ax,300],[x+20,h-50],1.4);}
+  if(f.bed.on&&f.bed.sofa){const b=f.bed,x=b.x,L=b.L,h=b.h,ct=Math.min(150,h-110);
+    box(x,60,x+L,h-ct);box(x+30,0,x+70,60);box(x+L-70,0,x+L-30,60);box(x,h-ct,x+60,b.hb);
+    el("rect",{x:x+60,y:Y(h),width:L-60,height:ct,rx:10*U,fill:"var(--paper)",stroke:"var(--furn)","stroke-width":1.6*U},g);
+    el("rect",{x:x+60,y:Y(b.hb-30),width:80,height:b.hb-30-h,rx:10*U,fill:"var(--paper)",stroke:"var(--furn)","stroke-width":1.4*U},g);}
+  if(f.bed.on&&!f.bed.sofa){const b=f.bed,x=b.x,L=b.L,h=b.h,mt=Math.min(200,h-120);
+    box(x,0,x+60,b.hb);box(x+60,h-mt-120,x+L,h-mt);box(x+90,0,x+150,h-mt-120);box(x+L-90,0,x+L-30,h-mt-120);
+    el("rect",{x:x+60,y:Y(h),width:L-60,height:mt,rx:6*U,fill:"var(--paper)",stroke:"var(--furn)","stroke-width":1.6*U},g);
+    el("ellipse",{cx:x+60+260,cy:Y(h+55),rx:240,ry:60,fill:"var(--paper)",stroke:"var(--furn)","stroke-width":1.3*U},g);}
+  if(f.toilet.on){const t=f.toilet,w=t.wall,h=t.h;
+    box(w-40,0,w,2300);
+    box(w,420,w+200,780);box(w-10,780,w+210,810);
+    el("path",{d:`M ${w+200} ${Y(h-30)} L ${w+650} ${Y(h-30)} Q ${w+640} ${Y(h-170)} ${w+500} ${Y(200)} L ${w+470} ${Y(0)} L ${w+250} ${Y(0)} L ${w+230} ${Y(200)} Z`,fill:"var(--furn-fill)",stroke:"var(--furn)","stroke-width":1.6*U,"stroke-linejoin":"round"},g);
+    box(w+200,h-30,w+650,h);
+    box(t.door,0,t.door+40,2100);
+    el("circle",{cx:t.px,cy:Y(t.ph),r:55,fill:"var(--paper)",stroke:"var(--furn)","stroke-width":1.4*U,"stroke-dasharray":`${3*U} ${2*U}`},g);
+    const lt=el("text",{x:t.px,y:Y(t.ph+70),"font-size":10.5*U,fill:"var(--furn)","text-anchor":"middle","font-family":"IBM Plex Sans KR, sans-serif"},g);lt.textContent="휴지걸이(옆벽)";}
+  if(f.bath.on){const b=f.bath,x=b.x,L=b.L,ix0=x+b.wt,ix1=x+L-b.wt,sx=ix0+b.sl,xs=y=>ix0+b.sl*(b.rim-y)/(b.rim-b.bot);
+    box(x,0,x+L,b.rim);
+    el("path",{d:`M ${ix0} ${Y(b.rim)} L ${sx} ${Y(b.bot)} L ${ix1} ${Y(b.bot)} L ${ix1} ${Y(b.rim)} Z`,fill:"var(--paper)",stroke:"var(--furn)","stroke-width":1.4*U,"stroke-linejoin":"round"},g);
+    el("path",{d:`M ${xs(b.wl)} ${Y(b.wl)} L ${sx} ${Y(b.bot)} L ${ix1} ${Y(b.bot)} L ${ix1} ${Y(b.wl)} Z`,fill:"var(--accent-soft)",opacity:.8},g);
+    line([xs(b.wl),b.wl],[ix1,b.wl],1.2*U,"var(--accent)",g,{"stroke-dasharray":`${4*U} ${3*U}`});}
+  if(f.basin.on){const b=f.basin,W=b.wall,fr=W-b.dep;
+    box(W,0,W+40,2400);
+    el("rect",{x:W-14,y:Y(b.mt),width:14,height:b.mt-b.mb,fill:"var(--accent-soft)",stroke:"var(--accent)","stroke-width":1.2*U},g);
+    el("path",{d:`M ${fr} ${Y(b.h)} L ${W} ${Y(b.h)} L ${W} ${Y(b.hb)} L ${fr+60} ${Y(b.hb)} Q ${fr} ${Y(b.hb+20)} ${fr} ${Y(b.hb+80)} Z`,fill:"var(--furn-fill)",stroke:"var(--furn)","stroke-width":1.6*U,"stroke-linejoin":"round"},g);
+    el("path",{d:`M ${fr+50} ${Y(b.h-15)} Q ${fr+b.dep*.45} ${Y(b.h-170)} ${W-60} ${Y(b.h-15)}`,fill:"var(--paper)",stroke:"var(--furn)","stroke-width":1.2*U},g);
+    ln([W-150,b.hb],[W-150,Math.max(250,b.hb-200)],2.2);ln([W-150,Math.max(250,b.hb-200)],[W,Math.max(250,b.hb-200)],2.2);
+    ln([W,b.h+b.fh],[W-90,b.h+b.fh],3);ln([W-90,b.h+b.fh],[W-90,b.h+b.fh-35],3);
+    const lt=el("text",{x:W-20,y:Y(b.mt+30),"font-size":10.5*U,fill:"var(--accent)","text-anchor":"end","font-family":"IBM Plex Sans KR, sans-serif"},g);lt.textContent="거울";}
+  if(f.shower.on){const w=f.shower,L=w.lw,Rw=w.rw;
+    box(L-40,0,L,2400);box(Rw,0,Rw+40,2400);
+    ln([Rw,w.hh+40],[Rw-300,w.hh+40],2.4);el("path",{d:`M ${Rw-340} ${Y(w.hh+40)} L ${Rw-260} ${Y(w.hh+40)} L ${Rw-280} ${Y(w.hh)} L ${Rw-320} ${Y(w.hh)} Z`,fill:"var(--furn-fill)",stroke:"var(--furn)","stroke-width":1.4*U},g);
+    for(let k=0;k<4;k++)line([Rw-315+k*10,w.hh-10],[Rw-330+k*14,w.hh-120],.8*U,"var(--accent)",g,{"stroke-dasharray":`${3*U} ${3*U}`});
+    box(Rw-25,w.vh-45,Rw,w.vh+45);ln([Rw-25,w.vh],[Rw-110,w.vh+10],3);
+    box(Rw-160,w.sh-20,Rw,w.sh);
+    box(L,w.seatH-40,L+w.seatD,w.seatH);ln([L,w.seatH-40],[L+w.seatD*.6,w.seatH-240],1.6);
+    const lt=el("text",{x:Rw-60,y:Y(w.vh+60),"font-size":10.5*U,fill:"var(--furn)","text-anchor":"end","font-family":"IBM Plex Sans KR, sans-serif"},g);lt.textContent="수전";}
+  if(f.desk.on){const h=f.desk.h,a=f.desk.x0,z=f.desk.x1;box(a,h-30,z,h);box(z-40,0,z-10,h-30);box(a+Math.min(150,(z-a)*.3),h-130,z,h-30).setAttribute("opacity",.45);
+    if(f.mon.on){const G=monGeo(),ink={stroke:"var(--fg)","stroke-width":1.6*U,"stroke-linejoin":"round"};
+      if(G.lap){const[hx,hy]=G.hinge;if(f.mon.lift>0)box(hx-LAP.d+30,h,hx-20,G.y0).setAttribute("opacity",.6);
+        el("rect",Object.assign({x:hx-LAP.d,y:Y(hy),width:LAP.d,height:LAP.t,fill:"var(--paper)"},ink),g);
+        el("line",Object.assign({x1:hx,y1:Y(hy),x2:G.top[0],y2:Y(G.top[1])},ink,{"stroke-width":5*U,"stroke-linecap":"round"}),g);}
+      else{el("rect",Object.assign({x:G.top[0]-12,y:Y(G.top[1]),width:24,height:330,rx:4,fill:"var(--fg)"},ink),g);
+        box(G.top[0]+10,h,G.top[0]+30,G.bot[1]+60);box(G.top[0]-90,h,G.top[0]+120,h+12);
+        el("rect",Object.assign({x:G.kbX[0],y:Y(G.kbY),width:G.kbX[1]-G.kbX[0],height:30,rx:3,fill:"var(--paper)"},ink),g);}}}
+  if(f.counter.on){const h=f.counter.h,a=f.counter.x0;box(a,h-30,950,h);box(a+60,100,950,h-30);box(a+60,0,950,100).setAttribute("opacity",.55);
+    el("path",{d:`M ${Math.min(a+150,880)} ${Y(h)} q ${Math.min(150,(950-a)/3)} 110 ${Math.min(300,(950-a)*.6)} 0`,fill:"none",stroke:"var(--furn)","stroke-width":1.4*U,"stroke-dasharray":`${5*U} ${3*U}`},g);}
+  if(f.upper.on)box(f.upper.x0,f.upper.b,950,f.upper.t);
+  // 가구 조절 손잡이
+  furnHandles().forEach(hd=>{const k=4.5*U,act=S.fdrag===hd.id;
+    el("rect",{x:hd.p[0]-k,y:Y(hd.p[1])-k,width:2*k,height:2*k,rx:U,fill:act?"var(--furn)":"var(--paper)",stroke:"var(--furn)","stroke-width":1.5*U},g);
+    if(act){const t=el("text",{x:hd.p[0]+(hd.lx||1)*8*U,y:Y(hd.p[1])-8*U,"font-size":12.5*U,"font-weight":600,fill:"var(--furn)","text-anchor":(hd.lx||1)>0?"start":"end","font-family":"IBM Plex Sans KR, sans-serif",stroke:"var(--paper)","stroke-width":3.5*U,"paint-order":"stroke"},g);t.textContent=hd.label();}
+  });
+  if(f.counter.on||f.upper.on)el("line",{x1:950,y1:0,x2:950,y2:Y(-VB[1]),stroke:"var(--furn)","stroke-width":2.5*U},g);
+}
+function drawBody(B,c,idx,me){
+  const H=B.H,g=el("g",{});
+  const w=k=>k*H, [vx,,vw]=VB;
+  // 몸 형태(d: 굵기 증감). 실루엣과 윤곽선 마스크에 같이 씀
+  const shape=(par,col,d)=>{
+    line(B.hip,B.K,w(.085)+d,col,par);line(B.K,B.A,w(.06)+d,col,par);
+    el("path",{d:`M ${B.A[0]} ${Y(B.A[1])} L ${B.toe[0]} ${Y(B.toe[1])} L ${B.heel[0]} ${Y(B.heel[1])} Z`,fill:col,stroke:col,"stroke-width":Math.max(1,w(.012)+d),"stroke-linejoin":"round"},par);
+    line(B.hip,B.Sh,w(.12)+d,col,par);line(B.Sh,B.Hc,w(.05)+d,col,par);
+    el("circle",{cx:B.Hc[0],cy:Y(B.Hc[1]),r:Math.max(1,w(B.R.head)+d/2),fill:col},par);
+    line(B.Sh,B.E,w(.05)+d,col,par);line(B.E,B.F,w(.042)+d,col,par);};
+  if(me){
+    // 내 몸: 반투명 색 실루엣(그룹 투명도로 겹침부가 진해지지 않음)
+    shape(el("g",{opacity:.5},g),c,0);
+  }else{
+    // 비교 인체: 속이 빈 윤곽선(마스크로 합집합의 바깥선만 남김)
+    const id="ol"+idx+"_"+Math.round(H),t=.9*U,[mx,my,mw,mh]=VB;
+    const m=el("mask",{id,maskUnits:"userSpaceOnUse",x:mx,y:my,width:mw,height:mh},g);
+    shape(m,"#fff",t);shape(m,"#000",-t);
+    el("rect",{x:mx,y:my,width:mw,height:mh,fill:c,mask:`url(#${id})`},g);
+  }
+  // 관절선: 내 몸은 실루엣 위에 바탕색 선, 비교 인체는 가는 색선
+  const jc=me?"var(--paper)":c, ja=me?.9:.35;
+  [[B.hip,B.Sh],[B.Sh,B.Hc],[B.Sh,B.E],[B.E,B.F],[B.hip,B.K],[B.K,B.A]].forEach(([p,q])=>line(p,q,(me?1.2:1)*U,jc,g,{opacity:ja}));
+  [B.hip,B.Sh,B.E,B.K,B.A].forEach(p=>el("circle",{cx:p[0],cy:Y(p[1]),r:(me?3.2:2.2)*U,fill:me?c:"var(--paper)",stroke:jc,"stroke-width":(me?1.2:1)*U,opacity:me?.85:.6},g));
+  el("circle",{cx:B.eye[0],cy:Y(B.eye[1]),r:2.6*U,fill:me?"var(--paper)":c},g);
+  B.hit.forEach(p=>el("circle",{cx:p[0],cy:Y(p[1]+.045*H),r:8*U,fill:"none",stroke:"var(--warn)","stroke-width":2.2*U},g));
+  if(B.ik&&!B.ik.reached) el("line",{x1:B.F[0],y1:Y(B.F[1]),x2:S.target.x,y2:Y(S.target.y),stroke:c,"stroke-width":1.5*U,"stroke-dasharray":`${1.5*U} ${3.5*U}`},g);
+  if(!me)return;
+  const yb=-12*U, bad=B.comOut>0, cc=bad?"var(--warn)":c, cx=B.com[0], cy=Y(B.com[1]), r=7*U;
+  if(isFinite(B.sup[0])){line([B.sup[0],yb],[B.sup[1],yb],4.5*U,c,g,{opacity:.6,"stroke-linecap":"butt"});
+    const t=el("text",{x:B.sup[0]-6*U,y:Y(yb)+4*U,"font-size":11*U,fill:"var(--muted)","text-anchor":"end","font-family":"IBM Plex Sans KR, sans-serif"},g);t.textContent="지지면";}
+  el("line",{x1:cx,y1:cy,x2:cx,y2:Y(yb),stroke:cc,"stroke-width":(bad?1.6:1)*U,"stroke-dasharray":`${3.5*U} ${3*U}`,opacity:bad?1:.6},g);
+  el("circle",{cx,cy,r,fill:"var(--paper)",stroke:cc,"stroke-width":1.6*U},g);
+  el("path",{d:`M ${cx} ${cy-r} A ${r} ${r} 0 0 1 ${cx+r} ${cy} L ${cx} ${cy} Z M ${cx} ${cy+r} A ${r} ${r} 0 0 1 ${cx-r} ${cy} L ${cx} ${cy} Z`,fill:cc},g);
+}
+function drawTarget(){
+  if(!S.target)return;
+  const T=S.target,g=el("g",{});
+  el("circle",{cx:T.x,cy:Y(T.y),r:12*U,fill:"var(--accent-soft)",stroke:"var(--accent)","stroke-width":1.8*U},g);
+  line([T.x-18*U,T.y],[T.x+18*U,T.y],1.4*U,"var(--accent)",g);line([T.x,T.y-18*U],[T.x,T.y+18*U],1.4*U,"var(--accent)",g);
+  const t=el("text",{x:T.x+15*U,y:Y(T.y)-14*U,"font-size":12*U,fill:"var(--accent)","font-family":"IBM Plex Mono, monospace",stroke:"var(--paper)","stroke-width":3*U,"paint-order":"stroke"},g);
+  t.textContent=`${Math.round(T.y)}`;
+}
+const fmt=v=>Math.round(v).toLocaleString("ko-KR");
+// 신체 외곽 범위(분절 두께 반영 근사)
+function env(B){const H=B.H;let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+  const put=(p,r)=>{x0=Math.min(x0,p[0]-r);x1=Math.max(x1,p[0]+r);y0=Math.min(y0,p[1]-r);y1=Math.max(y1,p[1]+r);};
+  const seg=(a,b,k)=>{for(let t=0;t<=1.0001;t+=.25)put(lerp(a,b,t),k*H);};
+  seg(B.hip,B.Sh,.06);seg(B.Sh,B.Hc,.025);put(B.Hc,B.R.head);seg(B.hip,B.K,.0425);seg(B.K,B.A,.03);
+  seg(B.Sh,B.E,.025);seg(B.E,B.F,.021);put(B.heel,0);put(B.toe,0);
+  return {x0,x1,y0:Math.max(y0,Math.min(0,B.sole)),y1};}
+const tick=(x,y,g,c)=>{const k=4*U;el("line",{x1:x-k,y1:Y(y)+k,x2:x+k,y2:Y(y)-k,stroke:c,"stroke-width":1.5*U},g);};
+const txt=(x,y,str,g,c,extra)=>{const t=el("text",Object.assign({x,y:Y(y),"font-size":12.5*U,"font-weight":500,fill:c,"font-family":"IBM Plex Sans KR, IBM Plex Mono, sans-serif",stroke:"var(--paper)","stroke-width":3.5*U,"paint-order":"stroke","stroke-linejoin":"round"},extra||{}),g);t.textContent=str;return t;};
+function drawBox(B,c){const e=env(B),g=el("g",{});
+  el("rect",{x:e.x0,y:Y(e.y1),width:e.x1-e.x0,height:e.y1-e.y0,fill:"none",stroke:c,"stroke-width":1.1*U,"stroke-dasharray":`${5*U} ${3*U}`,opacity:.8},g);}
+const DIMPAD={l:185,r:40,t:42,b:44};
+// 가구 치수선
+function chairDimX(){return (S.f.chair.wc?S.f.chair.x-240:S.f.chair.x-30)-16*U;}
+function furnLeftX(){const f=S.f;if(f.shower.on)return f.shower.lw-40-16*U;if(f.bed.on)return f.bed.x-16*U;if(f.toilet.on)return f.toilet.wall-40-16*U;if(f.bath.on)return f.bath.x-16*U;if(f.chair.on)return chairDimX();return null;}
+function dimV(x,y0,y1,label,c,g,ex){
+  if(ex!=null){el("line",{x1:ex,y1:Y(y1),x2:x+5*U,y2:Y(y1),stroke:c,"stroke-width":.7*U},g);if(y0>0)el("line",{x1:ex,y1:Y(y0),x2:x+5*U,y2:Y(y0),stroke:c,"stroke-width":.7*U},g);}
+  el("line",{x1:x,y1:Y(y0),x2:x,y2:Y(y1),stroke:c,"stroke-width":1.2*U},g);tick(x,y0,g,c);tick(x,y1,g,c);
+  const my=(y0+y1)/2;txt(x-4*U,my,label,g,c,{transform:`rotate(-90 ${x-4*U} ${Y(my)})`,"text-anchor":"middle","font-weight":600});}
+function dimH(y,x0,x1,label,c,g,ey){
+  if(ey!=null){[x0,x1].forEach(x=>el("line",{x1:x,y1:Y(ey),x2:x,y2:Y(y+5*U),stroke:c,"stroke-width":.7*U},g));}
+  el("line",{x1:x0,y1:Y(y),x2:x1,y2:Y(y),stroke:c,"stroke-width":1.2*U},g);tick(x0,y,g,c);tick(x1,y,g,c);
+  txt((x0+x1)/2,y+4*U,label,g,c,{"text-anchor":"middle","font-weight":600});}
+function drawFurnDims(){
+  const f=S.f,g=el("g",{}),c="var(--furn)";
+  if(f.chair.on)dimV(chairDimX(),0,f.chair.h,`좌면 ${fmt(f.chair.h)}`,c,g,f.chair.wc?f.chair.x:f.chair.x-30);
+  if(f.bed.on&&f.bed.sofa){const b=f.bed;dimV(b.x+b.L+18*U,0,b.h,`좌면 ${fmt(b.h)}`,c,g,b.x+b.L);dimH(b.h+14*U,b.x+140,b.x+b.L,`좌면 깊이 ${fmt(b.L-140)}`,c,g,b.h);dimV(b.x-16*U,0,b.hb,`등받이 ${fmt(b.hb)}`,c,g,b.x);}
+  else if(f.bed.on){const b=f.bed;dimV(b.x+b.L+18*U,0,b.h,`침대 높이 ${fmt(b.h)}`,c,g,b.x+b.L);dimH(b.h+(b.hb>b.h+150?14:30)*U+80,b.x+60,b.x+b.L,`매트리스 길이 ${fmt(b.L-60)}`,c,g,b.h);dimV(b.x-16*U,0,b.hb,`헤드보드 ${fmt(b.hb)}`,c,g,b.x);}
+  if(f.toilet.on){const t=f.toilet,fr=t.wall+650;dimV(t.wall-40-16*U,0,t.h,`변기 높이 ${fmt(t.h)}`,c,g,t.wall+200);dimH(-26*U,fr,t.door,`앞 공간 ${fmt(t.door-fr)}`,c,g,0);dimV(t.px+70+14*U,0,t.ph,`휴지걸이 ${fmt(t.ph)}`,c,g,t.px+55);}
+  if(f.bath.on){const b=f.bath;dimV(b.x-16*U,0,b.rim,`욕조 턱 ${fmt(b.rim)}`,c,g,b.x);dimH(b.rim+14*U,b.x+b.wt,b.x+b.L-b.wt,`안치수 길이 ${fmt(b.L-2*b.wt)}`,c,g,b.rim);dimV(b.x+b.L+18*U,b.bot,b.wl,`수심 ${fmt(b.wl-b.bot)}`,"var(--accent)",g,b.x+b.L);}
+  if(f.basin.on){const b=f.basin,x=b.wall+40+18*U;dimV(x,0,b.hb,`하단 ${fmt(b.hb)}`,c,g,b.wall+40);dimV(x+0,b.hb,b.h,`상단 ${fmt(b.h)}`,c,g,b.wall+40);dimV(x+40*U,0,b.mb,`거울 하단 ${fmt(b.mb)}`,"var(--accent)",g,b.wall+40);dimH(b.h+14*U,b.wall-b.dep,b.wall,`돌출 ${fmt(b.dep)}`,c,g,b.h);}
+  if(f.shower.on){const w=f.shower,x=w.rw+40+18*U;dimV(x,0,w.vh,`수전 ${fmt(w.vh)}`,c,g,w.rw+40);dimV(x+40*U,0,w.sh,`선반 ${fmt(w.sh)}`,c,g,w.rw+40);dimV(x+80*U,0,w.hh,`샤워기 ${fmt(w.hh)}`,c,g,w.rw+40);dimV(w.lw-40-16*U,0,w.seatH,`의자 ${fmt(w.seatH)}`,c,g,w.lw);}
+  if(f.desk.on){const d=f.desk;dimH(d.h+14*U,d.x0,d.x1,`책상 깊이 ${fmt(d.x1-d.x0)}`,c,g,d.h);dimV(d.x1+18*U,0,d.h,`책상 높이 ${fmt(d.h)}`,c,g,d.x1);
+    if(f.mon.on){const G=monGeo();dimV(d.x1+44*U,0,G.top[1],`화면 상단 ${fmt(G.top[1])}`,"var(--fg)",g,G.top[0]);}}
+  if(f.counter.on){const k=f.counter;dimH(k.h+14*U,k.x0,950,`작업대 깊이 ${fmt(950-k.x0)}`,c,g,k.h);dimV(k.x0-16*U,0,k.h,`작업대 높이 ${fmt(k.h)}`,c,g,k.x0);}
+  if(f.upper.on){const u=f.upper,x=950+18*U;dimV(x,0,u.b,`하단 ${fmt(u.b)}`,c,g,950);dimV(x,u.b,u.t,`상부장 ${fmt(u.t-u.b)}`,c,g,950);dimH(u.t+14*U,u.x0,950,`깊이 ${fmt(950-u.x0)}`,c,g,u.t);}
+}
+function drawDims(B,c){
+  const e=env(B),g=el("g",{});
+  const fl=S.dim.fur?furnLeftX():null, xc=Math.min(e.x0-24*U,fl!=null?fl-34*U:1e9);
+  let lv=[["팔꿈치",B.E[1]],["눈높이",B.eye[1]],["손",B.F[1]],["최고점",e.y1]];
+  {const st=curSeat();if(S.mode==="seat"&&st&&!S.dim.fur&&st.kind!=="bath")lv.push([st.label,st.h]);}
+  lv.sort((a,b)=>a[1]-b[1]);
+  lv=lv.filter(v=>!(v[0]==="최고점"&&Math.abs(v[1]-B.F[1])<40));
+  el("line",{x1:xc,y1:Y(0),x2:xc,y2:Y(lv[lv.length-1][1]),stroke:c,"stroke-width":1.2*U},g);
+  tick(xc,0,g,c);
+  let lastY=-1e9;
+  lv.forEach(([name,v])=>{
+    tick(xc,v,g,c);
+    const src=name==="손"?B.F:name==="팔꿈치"?B.E:name==="눈높이"?B.eye:null;
+    if(src)el("line",{x1:xc+4*U,y1:Y(v),x2:src[0],y2:Y(v),stroke:c,"stroke-width":.7*U,"stroke-dasharray":`${1.5*U} ${2*U}`,opacity:.85},g);
+    const ly=Math.max(v,lastY+15*U);lastY=ly;
+    txt(xc-6*U,ly-4*U,`${name} ${fmt(v)}`,g,c,{"text-anchor":"end"});
+  });
+  const yd=e.y1+26*U;
+  el("line",{x1:e.x0,y1:Y(e.y1+3*U),x2:e.x0,y2:Y(yd+5*U),stroke:c,"stroke-width":.7*U},g);
+  el("line",{x1:e.x1,y1:Y(e.y1+3*U),x2:e.x1,y2:Y(yd+5*U),stroke:c,"stroke-width":.7*U},g);
+  el("line",{x1:e.x0-6*U,y1:Y(yd),x2:e.x1+6*U,y2:Y(yd),stroke:c,"stroke-width":1.2*U},g);
+  tick(e.x0,yd,g,c);tick(e.x1,yd,g,c);
+  txt((e.x0+e.x1)/2,yd+4*U,`점유 깊이 ${fmt(e.x1-e.x0)}`,g,c,{"text-anchor":"middle"});
+  // 점유 높이는 높이 치수선의 '최고점'과 같으므로 따로 그리지 않음
+}
+// 시스템(인체+가구) 점유 범위
+function sysEnv(B){const e=env(B);let {x0,x1,y0,y1}=e;furnBounds().forEach(f=>{x0=Math.min(x0,f[0]);x1=Math.max(x1,f[2]);y0=Math.min(y0,f[1]);y1=Math.max(y1,f[3]);});return {x0,x1,y0,y1};}
+function drawSys(B){
+  if(!furnBounds().length)return;
+  const e=sysEnv(B),h=env(B),g=el("g",{}),c="var(--accent)";
+  el("rect",{x:e.x0,y:Y(e.y1),width:e.x1-e.x0,height:e.y1-e.y0,fill:"none",stroke:c,"stroke-width":1.5*U,"stroke-dasharray":`${8*U} ${3*U} ${2*U} ${3*U}`},g);
+  const yd=Math.max(e.y1,S.dim.on?h.y1+26*U:-1e9)+24*U;
+  [e.x0,e.x1].forEach(x=>el("line",{x1:x,y1:Y(e.y1+3*U),x2:x,y2:Y(yd+5*U),stroke:c,"stroke-width":.7*U},g));
+  el("line",{x1:e.x0-6*U,y1:Y(yd),x2:e.x1+6*U,y2:Y(yd),stroke:c,"stroke-width":1.3*U},g);
+  tick(e.x0,yd,g,c);tick(e.x1,yd,g,c);
+  txt((e.x0+e.x1)/2,yd+4*U,`시스템 깊이 ${fmt(e.x1-e.x0)}`,g,c,{"text-anchor":"middle","font-weight":600});
+  const xr=e.x1+(S.dim.fur?(S.f.upper.on?20:30):0)*U+26*U;
+  el("line",{x1:e.x1+3*U,y1:Y(e.y1),x2:xr+5*U,y2:Y(e.y1),stroke:c,"stroke-width":.7*U},g);
+  el("line",{x1:xr,y1:Y(e.y0),x2:xr,y2:Y(e.y1),stroke:c,"stroke-width":1.3*U},g);
+  tick(xr,e.y0,g,c);tick(xr,e.y1,g,c);
+  const my=Y((e.y0+e.y1)/2);
+  txt(xr+5*U,(e.y0+e.y1)/2,`시스템 높이 ${fmt(e.y1-e.y0)}`,g,c,{transform:`rotate(90 ${xr+5*U} ${my})`,"text-anchor":"middle",dy:-2*U,"font-weight":600});
+}
+// ---------- 확대·축소·이동 ----------
+// 기본 화면은 더미(또는 동작 범위)를 화면에 꽉 차게 맞춤. 치수선은 화면 밖으로 나갈 수 있음
+// V.z: 맞춤 대비 배율, V.ox/V.oy: 맞춤 중심에서 옮긴 거리(mm)
+const V={z:1,ox:0,oy:0,base:null};
+const CEIL=2400; // 이동 한계: 천장 높이
+let wantSize=true; // 장면·동작이 바뀔 때만 폰의 그림 창 높이를 내용 비율에 맞춤
+const isPhone=()=>window.innerWidth<=860;
+let manualH=null; // 손잡이로 직접 정한 그림 창 높이(두 번 누르면 자동으로 돌아감)
+function sizeStage(cw,ch,m,floor){const st=document.querySelector(".stage");if(!isPhone()){st.style.height="";return;}
+  if(manualH){st.style.height=manualH+"px";return;}
+  const rc=svg.getBoundingClientRect(),extra=st.getBoundingClientRect().height-rc.height,ih=window.innerHeight;
+  let h=(rc.width-2*m)*ch/cw+2*m+floor+extra;
+  const lo=ih*.26,hi=ih*.6;h=Math.round(clamp(h,lo,hi));
+  if(Math.abs(st.getBoundingClientRect().height-h)>3)st.style.height=h+"px";}
+function fitBox(x0,x1,y0,y1){
+  const m=isPhone()?6:16, floor=isPhone()?34:40;
+  let cw=Math.max(x1-x0,300),ch=Math.max(y1-y0,400);
+  if(wantSize){wantSize=false;sizeStage(cw,ch,m,floor);}
+  const rc=svg.getBoundingClientRect();if(!rc.width||!rc.height)return;
+  const u=Math.max(cw/Math.max(60,rc.width-2*m),ch/Math.max(60,rc.height-2*m-floor));
+  // 남는 세로 공간은 위쪽으로 보내고 바닥선은 화면 아래 가까이 둠
+  V.base={cx:(x0+x1)/2,cy:y0-floor*u+rc.height*u/2,u,x0,x1,floor};applyView(rc);}
+function applyView(rc){rc=rc||svg.getBoundingClientRect();if(!V.base||!rc.width)return;let u=V.base.u/V.z;U=u;
+  // 화면 이동 한계: 위는 천장(2400) 위 약간, 아래는 바닥 띠, 좌우는 내용에서 1.5m
+  {const zmin=V.base.u*Math.max(1,rc.height-V.base.floor-44)/CEIL;if(V.z<zmin){V.z=zmin;u=V.base.u/V.z;U=u;}}
+  const hh=rc.height*u/2,hw=rc.width*u/2,top=CEIL+44*u,bot=-V.base.floor*u; // 천장선이 위쪽 버튼에 가리지 않도록 44px 여유
+  let cy=V.base.cy+V.oy;if(2*hh>=top-bot)cy=bot+hh;else cy=clamp(cy,bot+hh,top-hh);
+  let cx=V.base.cx+V.ox;const L=V.base.x0-1500,Rr=V.base.x1+1500;if(2*hw>=Rr-L)cx=(L+Rr)/2;else cx=clamp(cx,L+hw,Rr-hw);
+  V.ox=cx-V.base.cx;V.oy=cy-V.base.cy;
+  VB=[cx-hw,-(cy+hh),2*hw,2*hh];svg.setAttribute("viewBox",VB.join(" "));}
+function viewReset(){V.z=1;V.ox=0;V.oy=0;}
+addEventListener("resize",()=>{wantSize=true;});
+{const g=$("sGrip"),st=document.querySelector(".stage");let gd=null,lastT=0;
+  const setH=h=>{manualH=Math.round(clamp(h,innerHeight*.2,innerHeight*.82));st.style.height=manualH+"px";draw();};
+  g.addEventListener("pointerdown",e=>{const t=performance.now();if(t-lastT<300){manualH=null;wantSize=true;draw();lastT=0;return;}lastT=t;
+    gd={y:e.clientY,h:st.getBoundingClientRect().height};g.setPointerCapture(e.pointerId);e.preventDefault();});
+  g.addEventListener("pointermove",e=>{if(gd)setH(gd.h+e.clientY-gd.y);});
+  const up=()=>{gd=null;};g.addEventListener("pointerup",up);g.addEventListener("pointercancel",up);
+  g.addEventListener("keydown",e=>{if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();setH(st.getBoundingClientRect().height+(e.key==="ArrowDown"?24:-24));}});}
+const ptrs=new Map();let pinch=null,pan=null;
+function screenWorld(cx,cy){const rc=svg.getBoundingClientRect(),u=V.base.u/V.z;return{x:V.base.cx+V.ox+(cx-rc.left-rc.width/2)*u,y:V.base.cy+V.oy-(cy-rc.top-rc.height/2)*u};}
+function zoomAt(cx,cy,z){const w=screenWorld(cx,cy);V.z=clamp(z,.25,6);const rc=svg.getBoundingClientRect(),u=V.base.u/V.z;
+  V.ox=w.x-(cx-rc.left-rc.width/2)*u-V.base.cx;V.oy=w.y+(cy-rc.top-rc.height/2)*u-V.base.cy;}
+function startPinch(){const p=[...ptrs.values()];const d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y)||1,mx=(p[0].x+p[1].x)/2,my=(p[0].y+p[1].y)/2;
+  pinch={d0:d,z0:V.z,w0:screenWorld(mx,my)};pan=null;}
+function movePinch(){const p=[...ptrs.values()];const d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y)||1,mx=(p[0].x+p[1].x)/2,my=(p[0].y+p[1].y)/2;
+  V.z=clamp(pinch.z0*d/pinch.d0,.25,6);const rc=svg.getBoundingClientRect(),u=V.base.u/V.z;
+  V.ox=pinch.w0.x-(mx-rc.left-rc.width/2)*u-V.base.cx;V.oy=pinch.w0.y+(my-rc.top-rc.height/2)*u-V.base.cy;}
+svg.addEventListener("wheel",e=>{if(!V.base)return;e.preventDefault();zoomAt(e.clientX,e.clientY,V.z*Math.exp(-e.deltaY*.0015));draw();},{passive:false});
+let lastTap=0;
+function tapReset(e){const t=performance.now();if(t-lastTap<300){viewReset();draw();lastTap=0;}else lastTap=t;}
+$("vFit").onclick=()=>{viewReset();draw();};
+$("vIn").onclick=()=>{const rc=svg.getBoundingClientRect();zoomAt(rc.left+rc.width/2,rc.top+rc.height/2,V.z*1.4);draw();};
+$("vOut").onclick=()=>{const rc=svg.getBoundingClientRect();zoomAt(rc.left+rc.width/2,rc.top+rc.height/2,V.z/1.4);draw();};
+setTimeout(()=>{const h=$("zhint");if(h)h.hidden=true;},6000);
+const sgn=v=>(v>0?"+":"")+fmt(v);
+let BODIES={};
+
+// 눈에서 화면 중앙까지의 시선, 수평선, 각도와 시거리
+function drawGaze(B){if(!S.f.mon.on||!S.f.desk.on||!B)return;const G=monGeo(),e=B.eye,c=G.cen,g=el("g",{}),col="var(--accent)";
+  el("line",{x1:e[0],y1:Y(e[1]),x2:Math.max(c[0],e[0]+200),y2:Y(e[1]),stroke:"var(--muted)","stroke-width":1*U,"stroke-dasharray":`${2*U} ${3*U}`},g);
+  el("line",{x1:e[0],y1:Y(e[1]),x2:c[0],y2:Y(c[1]),stroke:col,"stroke-width":1.6*U,"stroke-dasharray":`${6*U} ${3*U}`},g);
+  el("circle",{cx:c[0],cy:Y(c[1]),r:4*U,fill:col},g);
+  const a=deg(Math.atan2(e[1]-c[1],c[0]-e[0])),dist=Math.hypot(c[0]-e[0],c[1]-e[1]),m=lerp(e,c,.55);
+  txt(m[0],m[1]-14*U,`시선 ${Math.round(a)}° 아래 · 시거리 ${fmt(dist)}`,g,col,{"text-anchor":"middle","font-weight":600});}
+function draw(){
+  S.f.basin.hb=S.f.basin.h-BTH;
+  $("sexM").setAttribute("aria-pressed",S.sex==="m");$("sexF").setAttribute("aria-pressed",S.sex==="f");
+  $("mFloor").setAttribute("aria-pressed",S.mode==="floor");$("mSeat").setAttribute("aria-pressed",S.mode==="seat");
+  $("tgOn").setAttribute("aria-pressed",!!S.target);$("tgOn").textContent=S.target?"목표점 해제":"목표점 사용";
+  document.querySelectorAll("#scenes button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.scene===S.scene));
+  $("wcOn").disabled=FIXED_SEAT.includes(S.scene);$("wcOn").setAttribute("aria-pressed",!!S.f.chair.wc);
+  $("stsPlay").disabled=$("stsP").disabled=!stsOK()&&!STS;
+  while(svg.firstChild)svg.removeChild(svg.firstChild);
+  const ps=[95,50,5,"me"].filter(p=>S.show[p]);
+  BODIES={};
+  const seat=curSeat();
+  ps.forEach(p=>{BODIES[p]=body(heightOf(p),S.pose,S.mode,S.x,seat,ratiosOf(p));});
+  // 책상과 몸의 충돌: 몸통·허벅지·무릎이 상판 앞단이나 가림판을 뚫으면 사람(앉은 경우 의자 포함)을 뒤로 밀어냄
+  // 인체와 가구는 서로 밀어내지 않음. 겹친 정도만 계산해 판정표에 알림
+  S.block=Math.max(0,...Object.values(BODIES).map(B=>Math.max(S.f.desk.on?deskPen(B):0,rectPen(B))));
+  {let x0=1e9,x1=-1e9,y1=0;const inc=(a,b,t)=>{x0=Math.min(x0,a);x1=Math.max(x1,b);y1=Math.max(y1,t);};
+   Object.values(BODIES).forEach(B=>{const e=env(B);inc(e.x0,e.x1,e.y1);});furnBounds().forEach(f=>inc(f[0],f[2],f[3]));
+   if(S.target)inc(S.target.x-60,S.target.x+60,S.target.y+60);
+   if(!drag)fitBox(x0,x1,0,y1);else applyView();}
+  drawGrid();drawFurn();
+  const order=PS.filter(p=>S.show[p]);
+  ps.forEach(p=>drawBody(BODIES[p],`var(--p${p})`,order.indexOf(p),p==="me"));
+  if(S.dim.box&&BODIES.me)drawBox(BODIES.me,"var(--pme)");
+  const dref=BODIES.me;
+  if(S.dim.fur)drawFurnDims();
+  if(S.dim.sys&&dref)drawSys(dref);
+  if(S.dim.on&&dref)drawDims(dref,`var(--p${PS.find(p=>BODIES[p]===dref)})`);
+  document.querySelectorAll("[data-dref]").forEach(b=>{const p=keyOf(b.dataset.dref);b.setAttribute("aria-pressed",!!S.show[p]);b.classList.toggle("ref",BODIES[p]===dref&&S.dim.on);});
+  drawTarget();
+  const ref=BODIES.me||BODIES[50]||BODIES[ps[0]];
+  drawGaze(ref);
+  if(ref){const g=el("g",{});const hs=[[ref.Hc,ref.R.head*ref.H+18],[ref.Sh,0],[ref.hip,44],[ref.A,44]];if(!S.target)hs.push([ref.E,0]);if(!S.target)hs.push([ref.F,0]);
+    hs.forEach(([p,r])=>el("circle",{cx:p[0],cy:Y(p[1]),r:7*U,fill:"none",stroke:"var(--accent)","stroke-width":1.4*U,opacity:.7},g));}
+  lastRef=ref?ref.P:null;
+  syncSliders(ref?ref.P:null);
+  $("legend").innerHTML=order.map(p=>`<span><i style="background:var(--p${p})"></i>${labelOf(p)}</span>`).join("")+`<span>◐ 무게중심 · ▬ 지지면</span>`;
+  table(order,BODIES);
+}
+
+function table(ps,B){
+  const f=S.f,rows=[];
+  const r=(name,fn,cls)=>rows.push({name,vals:ps.map(p=>fn(B[p])),cls});
+  r("키",b=>({t:fmt(b.H)}));
+  r("눈높이",b=>({t:fmt(b.eye[1])}));
+  r("팔꿈치높이",b=>({t:fmt(b.E[1])}));
+  r("손 높이(쥐는 점)",b=>({t:fmt(b.F[1])}));
+  r("수직 도달 최대(선 자세)",b=>({t:fmt(b.reachMax)}));
+  r("점유 깊이(앞뒤)",b=>{const e=env(b);return {t:fmt(e.x1-e.x0)};});
+  r("최고점 높이",b=>{const e=env(b);return {t:fmt(e.y1)};});
+  if(furnBounds().length){r("시스템 깊이(인체+가구)",b=>{const e=sysEnv(b);return {t:fmt(e.x1-e.x0)};});r("시스템 높이(인체+가구)",b=>{const e=sysEnv(b);return {t:fmt(e.y1-e.y0)};});}
+  const hints=[];
+  const armL=b=>(b.R.ua+b.R.fa+GRIP*b.R.hand)*b.H, reachTo=(b,x,y)=>{const m=armL(b)-Math.hypot(x-b.Sh[0],y-b.Sh[1]);return{t:m>=0?"닿음 +"+fmt(m):"부족 "+fmt(-m),c:m>=0?"o":"w"};};
+  let first=true;const rel=(n,fn)=>{r(n,fn,"rel"+(first?" sep":""));first=false;};
+  if(S.target){
+    rel("목표점 도달",b=>b.ik.reached?{t:b.ik.leaned>2?`숙여 닿음 ${Math.round(b.ik.leaned)}°`:"닿음",c:b.ik.leaned>2?"":"o"}:{t:`부족 ${fmt(b.ik.gap)}`,c:"w"});
+    hints.push("목표점은 그림을 끌어 옮길 수 있습니다. 같은 물건이라도 작은 사람은 몸을 숙이거나 닿지 못합니다.");
+  }
+  rel("균형(무게중심)",b=>b.comOut>0?{t:`이탈 ${fmt(b.comOut)}`,c:"w"}:{t:b.handSup?"안정(손 짚음)":"안정",c:"o"});
+  const st=curSeat();
+  if(S.mode==="seat"&&st&&st.kind!=="bath"&&!(st.kind==="bed"&&Math.abs(S.pose.th-S.pose.kn)>45)){
+    rel(`발·무릎(${st.label} ${st.h})`,b=>{const rise=b.K[1]-b.hip[1],fs=b.sole-st.floor;if(fs>20)return{t:"발 뜸 "+fmt(fs),c:"w"};if(b.adj&&rise>15)return{t:"무릎 들림 +"+fmt(rise),c:"w"};return{t:"맞음",c:"o"};});
+    hints.push(st.kind==="wc"?"휠체어에서는 발판 높이가 바닥 역할을 합니다.":"앉는 면이 높으면 발이 뜨고, 낮으면 무릎이 골반보다 들려 일어서기 어려워집니다.");}
+  if(f.bed.on&&f.bed.sofa){const bd=f.bed;
+    rel("좌면 깊이 − 엉덩이~오금",b=>{const d=(bd.L-140)-(b.R.th+.02)*b.H;return{t:sgn(d),c:d<=0?"o":"w"};});
+    rel("등받이 − 어깨",b=>{const d=bd.hb-b.Sh[1];return{t:sgn(d),c:d>=0?"o":"w"};});
+    hints.push("소파는 좌면이 낮고 깊습니다. 좌면 깊이가 엉덩이~오금 길이보다 길면 등받이에 기대려 할 때 골반이 앞으로 미끄러지고, 좌면이 낮을수록 일어설 때 상체를 많이 숙여야 합니다. 앉았다 일어서기로 확인하십시오.");}
+  if(f.bed.on&&!f.bed.sofa){const bd=f.bed;
+    rel("매트리스 길이 − 키",b=>{const d=bd.L-60-b.H;return{t:sgn(d),c:d>=200?"o":"w"};});
+    if(S.pose.t<-5&&S.pose.t>-70)rel("헤드보드 − 어깨",b=>{const d=bd.hb-b.Sh[1];return{t:sgn(d),c:d>=0?"o":"w"};});
+    hints.push("걸터앉아 발이 바닥에 닿는 높이가 일어서기 쉽고, 매트리스는 키보다 200mm 이상 길어야 머리·발 쪽에 여유가 생깁니다. 기대 앉을 때는 헤드보드가 어깨까지 받쳐 주어야 편합니다.");}
+  if(f.toilet.on){const tt=f.toilet;
+    rel("앞 공간(무릎·발끝~문)",b=>{const d=tt.door-Math.max(b.K[0]+.045*b.H,b.toe[0]);return{t:sgn(d),c:d>=250?"o":"w"};});
+    rel("휴지걸이 도달",b=>reachTo(b,tt.px,tt.ph));
+    hints.push("휴지걸이는 옆벽에 있으므로 실제로는 측면 거리도 더해집니다. 앞 공간이 좁으면 일어설 때 상체를 숙일 수 없습니다.");}
+  if(f.basin.on){const bs=f.basin,fr=bs.wall-bs.dep;
+    if(S.target)rel("몸통 숙임(세수)",b=>({t:Math.round(b.P.t)+"°"}));
+    rel("거울에 얼굴 보임(바로 선/앉은 자세)",b=>{const ey=S.mode==="floor"?(b.R.ank+b.R.sh+b.R.th+b.R.trunk+b.R.neck+.005)*b.H:b.eye[1],lo=ey-130,hi=ey+120;return lo>=bs.mb&&hi<=bs.mt?{t:"보임",c:"o"}:{t:lo<bs.mb?"턱 아래 안 보임":"머리 위 잘림",c:"w"};});
+    rel("수전 도달",b=>reachTo(b,bs.wall-90,bs.h+bs.fh));
+    if(f.chair.wc)rel("세면대 하단 − 무릎 상단",b=>{const k=b.K[1]+.045*b.H,inn=b.K[0]+.045*b.H>fr;return inn?{t:sgn(bs.hb-k),c:bs.hb-k>=0?"o":"w"}:{t:"무릎이 세면대 앞",c:"w"};});
+    hints.push("세면대가 낮으면 키 큰 사람은 허리를 많이 숙이고, 높으면 작은 사람과 휠체어 사용자의 손이 닿기 어렵습니다. 편의법 시행규칙(별표 1)은 휠체어 사용자용 세면대의 상단을 0.85m 이하, 하단을 0.65m 이상으로 정합니다. 거울은 서 있는 사람과 앉은 사람의 얼굴이 모두 보이도록 하단과 상단을 정합니다.");}
+  if(f.shower.on){const w=f.shower;
+    if(S.mode==="floor")rel("샤워기 − 머리 위",b=>{const d=w.hh-env(b).y1;return{t:sgn(d),c:d>=100?"o":"w"};});
+    rel("수전 도달",b=>reachTo(b,w.rw-60,w.vh));
+    rel("선반 도달",b=>reachTo(b,w.rw-80,w.sh+40));
+    hints.push("고정 샤워기는 큰 사용자(95%)의 머리 위에, 수전과 선반은 샤워 의자에 앉은 사용자도 닿는 높이에 둡니다. 높이를 옮길 수 있는 샤워 봉(슬라이드 바)은 조절식 설계의 예입니다. 샤워 의자에 앉아 수전·선반 도달을 확인하십시오.");}
+  if(f.bath.on){const ba=f.bath,ix1=ba.x+ba.L-ba.wt;
+    if(ba.onRim)rel("욕조 턱 − 적정 좌면높이",b=>{const d=ba.rim-(b.R.sh+b.R.ank-.055)*b.H;return{t:sgn(d),c:Math.abs(d)<=50?"o":"w"};});
+    rel("욕조 턱 − 무릎높이",b=>{const d=ba.rim-(b.R.ank+b.R.sh)*b.H;return{t:sgn(d),c:d<=0?"o":"w"};});
+    if(S.mode==="seat"&&!ba.onRim)rel("수면 − 어깨",b=>{const d=ba.wl-b.Sh[1];return{t:d>=0?"잠김 "+fmt(d):"노출 "+fmt(-d),c:d>=0?"o":"w"};});
+    if(S.mode==="seat"&&!ba.onRim)rel("발끝 − 욕조 끝벽",b=>{const d=ix1-Math.max(b.toe[0],b.heel[0]);return{t:sgn(d),c:(d>=0&&d<=150)?"o":"w"};});
+    hints.push("욕조 턱이 무릎보다 높으면 넘어 들어가기 어렵습니다. 턱에 걸터앉아 다리를 하나씩 넘기면 한 발로 서지 않아도 되므로, 턱 높이를 앉기 좋은 높이로 맞추는 것이 안전합니다(편의법 시행규칙 별표 1: 욕조 높이 0.4~0.45m). 기대 누웠을 때 발이 끝벽에 닿아야 몸이 미끄러지지 않습니다.");}
+  if(f.chair.on&&f.chair.wc){const c=f.chair;
+    if(f.desk.on)rel("책상 하부 − 팔걸이",()=>{const d=(f.desk.h-30)-(c.h+265);return{t:sgn(d),c:d>=0?"o":"w"};});
+    hints.push("휠체어는 팔걸이와 발판 때문에 책상·작업대에 가까이 가기 어렵습니다. 무릎과 발판이 들어갈 하부 공간이 필요합니다.");}
+  if(S.block>1)hints.push(`몸(또는 휠체어)이 가구와 ${fmt(S.block)}mm 겹쳐 있습니다. 실제로는 이 위치까지 들어갈 수 없습니다.`);
+  if(S.stsP>0&&S.stsP<1)hints.unshift("엉덩이가 앉는 면에서 뜨는 순간(약 45~55%) 무게중심이 발 지지면 안에 있어야 합니다. 앉는 면이 낮을수록 상체를 더 숙여야 합니다.");
+  if(f.mon.on&&f.desk.on){const G=monGeo();
+    rel("화면 상단 − 눈높이",b=>{const d=G.top[1]-b.eye[1];return{t:sgn(d),c:(d<=20&&d>=-100)?"o":"w"};});
+    rel("시선 각도(화면 중앙)",b=>{const a=Math.round(deg(Math.atan2(b.eye[1]-G.cen[1],G.cen[0]-b.eye[0])));return{t:`${a}° 아래`,c:(a>=10&&a<=15)?"o":"w"};});
+    rel("시거리(눈~화면 중앙)",b=>{const d=Math.hypot(G.cen[0]-b.eye[0],G.cen[1]-b.eye[1]);return{t:fmt(d),c:d>=400?"o":"w"};});
+    rel("키보드 − 팔꿈치",b=>{const d=G.kbY-b.E[1];return{t:sgn(d),c:Math.abs(d)<=50?"o":"w"};});
+    hints.push(G.lap?"노트북은 화면과 키보드가 붙어 있습니다. 받침으로 화면을 올리면 키보드도 함께 올라가 팔꿈치보다 높아집니다. 두 조건을 함께 맞추려면 별도 키보드가 필요합니다."
+      :"VDT 작업관리지침(고용노동부 고시): 화면 상단은 눈높이와 같거나 약간 낮게, 시선은 수평 아래 10~15°, 시거리 40cm 이상. 키보드는 팔꿈치 높이 근처에 둡니다.");}
+  if(f.desk.on){
+    if(!f.mon.on)rel("책상 − 팔꿈치",b=>{const d=f.desk.h-b.E[1];return {t:sgn(d),c:Math.abs(d)<=50?"o":"w"};});
+    if(S.mode==="seat") rel("책상 하부 − 무릎 상단",b=>b.kneeGap===null?{t:"—"}:{t:sgn(b.kneeGap),c:b.kneeGap>=20?"o":"w"});
+    hints.push("빨간 원은 다리가 책상 하부에 걸리는 지점입니다.");
+  }
+  if(f.counter.on){const T=TASK[f.counter.task]||TASK.light;
+    rel(`작업대 − 팔꿈치(${T.name.replace(/\(.*\)/,"")})`,b=>{const d=f.counter.h-b.E[1];return {t:sgn(d),c:(d>=T.lo&&d<=T.hi)?"o":"w"};});
+    hints.push(`${T.name}의 권장 작업면은 선 팔꿈치 높이 ${T.lo>0?"+":""}${T.lo}~${T.hi>0?"+":""}${T.hi}mm입니다(Grandjean, 1988). 정밀 작업은 눈에 가깝게 높이고, 힘을 아래로 주는 작업은 낮춥니다.`);}
+  if(f.upper.on){
+    rel("상부장 상단 도달",b=>{const d=b.reachMax-f.upper.t;return {t:(d>=0?"가능 ":"불가 ")+sgn(d),c:d>=0?"o":"w"};});
+    rel("상부장 하단 − 눈높이",b=>({t:sgn(f.upper.b-b.eye[1])}));
+  }
+  hints.push("바닥 아래 띠는 지지면, 점선은 무게중심 수직선입니다. 수직선이 띠를 벗어나면 넘어집니다.");
+  const head=`<thead><tr><th>항목(mm)</th>${ps.map(p=>`<th style="color:var(--p${p})">${labelOf(p)}</th>`).join("")}</tr></thead>`;
+  const body=rows.map(x=>`<tr class="${x.cls||""}"><td>${x.name}</td>${x.vals.map(v=>`<td class="${v.c||""}">${v.t}</td>`).join("")}</tr>`).join("");
+  $("out").innerHTML=ps.length?head+"<tbody>"+body+"</tbody>":"<tbody><tr><td>표시할 퍼센타일을 하나 이상 선택하십시오.</td></tr></tbody>";
+  $("hint").textContent=hints.join(" ");
+}
+
+// ---------- 끌기 ----------
+let drag=null;
+function toWorld(e){const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const m=svg.getScreenCTM();if(!m)return null;const q=pt.matrixTransform(m.inverse());return {x:q.x,y:-q.y};}
+function distSeg(p,a,b){const vx=b[0]-a[0],vy=b[1]-a[1],L=vx*vx+vy*vy||1;const k=clamp(((p.x-a[0])*vx+(p.y-a[1])*vy)/L,0,1);return Math.hypot(p.x-(a[0]+vx*k),p.y-(a[1]+vy*k));}
+function refBody(){return BODIES.me||BODIES[50]||Object.values(BODIES)[0];}
+svg.addEventListener("pointerdown",e=>{
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});svg.setPointerCapture(e.pointerId);
+  if(ptrs.size===2){if(drag){drag=null;S.fdrag=null;svg.classList.remove("grab");}startPinch();return;}
+  if(ptrs.size>2)return;
+  {const rb=refBody();if(rb)R=rb.R;}
+  const w=toWorld(e);if(!w)return;
+  const ref=refBody(), hd=p=>Math.hypot(w.x-p[0],w.y-p[1]);
+  const fh=furnHandles().map(h=>[h,hd(h.p)]).filter(x=>x[1]<Math.max(50,14*U)).sort((a,b)=>a[1]-b[1])[0];
+  if(fh){const o=Object.assign({x:w.x,y:w.y,cx:S.f.chair.x,bx:S.x,bed:Object.assign({},S.f.bed),sh:Object.assign({},S.f.shower)},S.f.desk);drag={k:"f",h:fh[0],o};S.fdrag=fh[0].id;}
+  else if(S.target&&hd([S.target.x,S.target.y])<Math.max(90,22*U)){drag={k:"t"};}
+  else if(ref&&hd(ref.Sh)<Math.max(60,16*U)){drag={k:"sh",hip:ref.hip.slice()};}
+  else if(ref&&hd(ref.Hc)<Math.max(ref.R.head*ref.H+45,22*U)){drag={k:"head",sh:ref.Sh.slice()};}
+  else if(ref&&!S.target&&hd(ref.E)<Math.max(60,16*U)){drag={k:"elbow",sh:ref.Sh.slice()};}
+  else if(ref&&!S.target&&hd(ref.F)<Math.max(60,16*U)){drag={k:"wrist",E:ref.E.slice(),ua:ref.P.ua};}
+  else if(ref&&(hd(ref.A)<Math.max(90,20*U)||hd(ref.toe)<Math.max(90,20*U)||hd(ref.heel)<70)){drag={k:"foot",hip:ref.hip.slice(),H:ref.H,wx:w.x,bx:S.x};}
+  else if(ref&&(hd(ref.hip)<Math.max(110,22*U)||distSeg(w,ref.hip,ref.Sh)<ref.H*.08||distSeg(w,ref.hip,ref.K)<ref.H*.06)){drag={k:"hip",a:ref.A.slice(),H:ref.H,dx:w.x-ref.hip[0],dy:w.y-ref.hip[1]};}
+  else{pan={x:e.clientX,y:e.clientY,ox:V.ox,oy:V.oy};tapReset(e);return;}
+  cancelTween();pushUndo();stsReset();if(DRAGJ[drag.k]){jSel=DRAGJ[drag.k];syncJ();}
+  svg.classList.add("grab");draw();
+});
+svg.addEventListener("pointermove",e=>{
+  if(ptrs.has(e.pointerId))ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinch&&ptrs.size>=2){movePinch();draw();return;}
+  if(pan){const u=V.base.u/V.z;V.ox=pan.ox-(e.clientX-pan.x)*u;V.oy=pan.oy+(e.clientY-pan.y)*u;draw();return;}
+  {const rb=refBody();if(rb)R=rb.R;}
+  if(!drag)return;const w=toWorld(e);if(!w)return;
+  if(drag.k==="f"){const h=furnHandles().find(x=>x.id===drag.h.id);if(h)h.set(w,drag.o);syncFurn();}
+  else if(drag.k==="t"||drag.k==="hand"){const x=clamp(w.x,-400,1380);S.target={x,y:onDesk(x,clamp(w.y,0,2400),12)};}
+  else if(drag.k==="elbow"){const a=deg(Math.atan2(w.x-drag.sh[0],-(w.y-drag.sh[1])));S.pose.ua=Math.round(clamp(a,-60,180));}
+  else if(drag.k==="wrist"){const y=onDesk(w.x,w.y,18),a=deg(Math.atan2(w.x-drag.E[0],-(y-drag.E[1])));S.pose.el=Math.round(clamp(a-drag.ua,0,150));}
+  else if(drag.k==="head"){const a=deg(Math.atan2(w.x-drag.sh[0],w.y-drag.sh[1]));S.pose.n=Math.round(clamp(a-S.pose.t,-40,60));}
+  else if(drag.k==="sh"){const a=deg(Math.atan2(w.x-drag.hip[0],w.y-drag.hip[1]));S.pose.t=Math.round(clamp(a,-95,90));}
+  else if(drag.k==="foot"&&S.mode==="floor"){S.pushChair=true;S.x=Math.round(clamp(drag.bx+w.x-drag.wx,-600,1400));}
+  else if(drag.k==="foot"){const H=drag.H,ank=R.ank*H,a=[w.x,S.mode==="seat"?Math.max(ank,w.y):ank];const r=legIK(H,drag.hip,a);S.pose.th=Math.round(r.th);S.pose.kn=Math.round(r.kn);}
+  else if(drag.k==="hip"){S.pushChair=true;
+    const H=drag.H,f=S.f,hx=clamp(w.x-drag.dx,-700,1400),hy=Math.max(R.ank*H+80,w.y-drag.dy);
+    const st=curSeat(), seatY=st?st.h+.055*H:0, onChair=!!st&&hx>=st.x0+10&&hx<=st.x1-40;
+    if(S.mode==="seat"){if(hy>seatY+120||!onChair)S.mode="floor";}
+    else if(onChair&&hy<=seatY+40){S.mode="seat";drag.a=[hx+R.th*H,(st?st.floor:0)+R.ank*H];} // 앉는 순간 발을 무릎 아래로 옮김
+    const hyT=S.mode==="seat"?seatY:hy, Lg=(R.th+R.sh)*H*.97, ax=drag.a;
+    {const dx=ax[0]-hx,dy=ax[1]-hyT;if(Math.hypot(dx,dy)>Lg){const ny=clamp(dy,-Lg,Lg),nx=Math.sqrt(Math.max(0,Lg*Lg-ny*ny));ax[0]=hx+(dx>=0?nx:-nx);}}
+    const r=legIK(H,[hx,hyT],ax);
+    S.pose.th=Math.round(r.th);S.pose.kn=Math.round(r.kn);S.x=Math.round(hx);
+  }
+  draw();
+});
+const end=e=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(ptrs.size===0)pan=null;
+  if(!drag)return;if(drag.k==="hand"){if(lastRef)Object.assign(S.pose,{t:Math.round(lastRef.t),ua:Math.round(lastRef.ua),el:Math.round(lastRef.el)});S.target=null;}drag=null;S.fdrag=null;svg.classList.remove("grab");draw();};
+svg.addEventListener("pointerup",end);svg.addEventListener("pointercancel",end);
+
+bedLabels();scene("toilet");syncFurn();draw();
+try{new ResizeObserver(()=>{if(!drag)draw();}).observe(svg);}catch(e){addEventListener("resize",()=>draw());}
+})();
+</script>
+
+<script>if("serviceWorker" in navigator)navigator.serviceWorker.register("../sw.js",{scope:"../"}).catch(()=>{});</script>
+</html>
