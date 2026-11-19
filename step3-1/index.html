@@ -277,11 +277,19 @@ function wcSym(g,x,y,u,col,a){const s=E("g",{transform:`rotate(${a||0} ${x} ${y}
   Ln(-170,-150,-120,-440);Ln(170,-150,120,-440); // 다리 프레임
   R(-160,-525,320,85,{rx:14}); // 발판
   E("circle",{cx:x-205,cy:y-300,r:42,fill:col},s);E("circle",{cx:x+205,cy:y-300,r:42,fill:col},s); // 앞바퀴
+  // 앉은 사람(위에서 본 모습, 불러온 더미의 어깨너비·엉덩이너비 사용)
+  {const B=body(),H=B.H,sh=B.shw/2,hp=Math.min(B.hipw/2,215),pc="var(--pme)",pf="var(--pme-soft)",ps={fill:pf,stroke:pc,"stroke-width":sw},kn=300-Math.round(.33*H);
+   R(-hp,kn,hp-12,240-kn,Object.assign({rx:60},ps));R(12,kn,hp-12,240-kn,Object.assign({rx:60},ps)); // 넓적다리
+   E("ellipse",Object.assign({cx:x-95,cy:y-470,rx:48,ry:105},ps),s);E("ellipse",Object.assign({cx:x+95,cy:y-470,rx:48,ry:105},ps),s); // 발(발판 위)
+   [-95,95].forEach(dx=>E("line",{x1:x+dx,y1:y+kn+40,x2:x+dx,y2:y-430,stroke:pc,"stroke-width":4*sw,"stroke-linecap":"round",opacity:.7},s)); // 아래다리
+   E("line",{x1:x-sh+30,y1:y+230,x2:x-282,y2:y+20,stroke:pc,"stroke-width":5*sw,"stroke-linecap":"round",opacity:.75},s);E("line",{x1:x+sh-30,y1:y+230,x2:x+282,y2:y+20,stroke:pc,"stroke-width":5*sw,"stroke-linecap":"round",opacity:.75},s); // 팔(바퀴 손잡이로)
+   E("ellipse",Object.assign({cx:x,cy:y+235,rx:sh,ry:Math.round(.055*H)},ps),s); // 어깨·몸통
+   E("circle",Object.assign({cx:x,cy:y+215,r:Math.round(.045*H)},ps),s);} // 머리
   E("path",{d:`M${x} ${y-620} l-55 70 h110 z`,fill:col},s);} // 앞 방향
 function drawWc(g,u){if(!S.wc)return;const bh=wcBodyHits(),bb=bh.length>0,tc=S.wc.t?wcHits():null,tb=tc&&tc.length>0,x=S.wc.x,y=S.wc.y,a=S.wc.a||0,ra=a*Math.PI/180,
     col=bb?"var(--warn)":"var(--accent)",gw=E("g",{"data-wc":"1",style:"cursor:move"},g);
   if(!S.wc.t)E("circle",{cx:x,cy:y,r:WCR,fill:"none",stroke:"var(--muted)","stroke-width":1.2*u,"stroke-dasharray":`${6*u} ${6*u}`,opacity:.45},gw);
-  else E("circle",{cx:x,cy:y,r:WCR,fill:tb?"var(--warn-soft)":"var(--pme-soft)","fill-opacity":.55,stroke:tb?"var(--warn)":"var(--ok,#2e8b57)","stroke-width":1.8*u,"stroke-dasharray":`${9*u} ${6*u}`},gw);
+  else E("circle",{cx:x,cy:y,r:WCR,fill:tb?"var(--warn-soft)":"rgba(46,139,87,.10)","fill-opacity":tb?.55:1,stroke:tb?"var(--warn)":"var(--ok,#2e8b57)","stroke-width":1.8*u,"stroke-dasharray":`${9*u} ${6*u}`},gw);
   wcSym(gw,x,y,u,col,a);
   const kx=x+Math.sin(ra)*690,ky=y-Math.cos(ra)*690;E("circle",{cx:kx,cy:ky,r:9*u,fill:"var(--paper)",stroke:col,"stroke-width":1.8*u,"data-wcr":"1",style:"cursor:grab"},gw);
   E("text",{x:kx,y:ky,"text-anchor":"middle","dominant-baseline":"central","font-size":11*u,"font-weight":700,fill:col,"pointer-events":"none"},gw).textContent="↻";
