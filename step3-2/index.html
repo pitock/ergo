@@ -7,7 +7,7 @@
 <link rel="apple-touch-icon" href="../icons/icon-192.png">
 <meta name="theme-color" content="#22333F">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Step3-2 원룸 평면과 입면</title>
+<title>Step3-2 방 평면과 입면</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -127,19 +127,20 @@ body[data-v="iso"] .view.plan,body[data-v="iso"] .view.elev{display:none!importa
   <button class="chip undo" id="undoBtn" aria-label="되돌리기" title="되돌리기" disabled>↶</button>
   <button class="chip" id="resetBtn">다시 작업</button>
   <button class="chip" id="allBtn" aria-pressed="false" title="놓인 모든 기구의 사용자 실루엣 표시">더미</button>
+  <button class="chip" id="wcBtn" aria-pressed="false" title="휠체어 회전 공간(지름 1,500)을 평면에 놓기">휠체어</button>
 </header>
 
 <div class="wrap">
   <div class="stage">
     <div class="view plan">
       <span class="vlab">평면 · 목록에서 끌어다 놓기</span>
-      <div class="vrow"><div class="pal" id="ppal"></div><div class="cv"><svg id="pl" role="img" aria-label="원룸 평면"></svg>
+      <div class="vrow"><div class="pal" id="ppal"></div><div class="cv"><svg id="pl" role="img" aria-label="방 평면"></svg>
       <div class="zb"><button data-z="pl:-">−</button><button data-z="pl:+">+</button><button data-z="pl:0">맞춤</button></div></div></div>
-      <div class="rbar">실 안치수 <label>폭 <input type="number" id="rW" step="10" aria-label="실 폭(A·C벽)"></label> × <label>길이 <input type="number" id="rL" step="10" aria-label="실 길이(B·D벽)"></label> mm <b id="rA"></b><span class="rnote">화장실 1,500×2,000·현관문 900(고정)</span></div>
+      <div class="rbar">실 안치수 <label>폭 <input type="number" id="rW" step="10" aria-label="실 폭(A·C벽)"></label> × <label>길이 <input type="number" id="rL" step="10" aria-label="실 길이(B·D벽)"></label> mm <b id="rA"></b><span class="rnote">출입문 900(C벽, 고정)</span></div>
     </div>
     <div class="view iso">
-      <span class="vlab">3D · 앞쪽 두 벽(B·C)을 걷어 냄 · 화장실 벽 반투명 · 가구를 끌어 이동, 빈 곳을 끌어 화면 이동</span>
-      <div class="cv"><svg id="iso" role="img" aria-label="원룸 등각 투상"></svg>
+      <span class="vlab">3D · 앞쪽 두 벽(B·C)을 걷어 냄 · 가구를 끌어 이동, 빈 곳을 끌어 화면 이동</span>
+      <div class="cv"><svg id="iso" role="img" aria-label="방 등각 투상"></svg>
       <div class="zb"><button data-z="iso:-">−</button><button data-z="iso:+">+</button><button data-z="iso:0">맞춤</button></div></div>
     </div>
     <div class="view elev">
@@ -149,7 +150,7 @@ body[data-v="iso"] .view.plan,body[data-v="iso"] .view.elev{display:none!importa
       <div class="zb"><button data-z="el:-">−</button><button data-z="el:+">+</button><button data-z="el:0">맞춤</button></div></div></div>
     </div>
     <div class="legend">
-      <span>빈 곳을 끌면 화면 이동 · 가구는 평면(벽이나 다른 가구 옆에 붙음), 상부장·선반·거울·액자는 입면에서 놓습니다 · 누르면 사용하는 사람과 문 회전이 나타남 · 밖으로 끌어내면 삭제 · 두 손가락으로 이동·확대</span>
+      <span>빈 곳을 끌면 화면 이동 · 가구는 평면(벽이나 다른 가구 옆에 붙음), 벽 선반·거울·액자 등은 입면에서 놓습니다 · 누르면 사용하는 사람과 문 회전이 나타남 · 밖으로 끌어내면 삭제 · 두 손가락으로 이동·확대</span>
     </div>
   </div>
 
@@ -180,8 +181,8 @@ body[data-v="iso"] .view.plan,body[data-v="iso"] .view.elev{display:none!importa
 (function(){
 const NS="http://www.w3.org/2000/svg",$=id=>document.getElementById(id);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),r10=v=>Math.round(v/10)*10,fmt=v=>Math.round(v).toLocaleString("ko-KR");
-const WT=150,CEIL=2400,BW=1500,BL=2000,BT=100,BD=700,ENT=1100; // 화장실(고정): 바깥 폭 BW × 길이 BL, 벽 두께 BT, 문 BD(위쪽) / 현관 깊이 ENT
-const ED={w:900}; // 현관문 폭(고정)
+const WT=150,CEIL=2400,BW=0,BL=0,BT=100,BD=700,ENT=0; // 화장실(고정): 바깥 폭 BW × 길이 BL, 벽 두께 BT, 문 BD(위쪽) / 현관 깊이 ENT
+const ED={w:900}; // 출입문 폭(고정)
 // 기구 종류
 const T={
   bed:{name:"침대",floor:true,w:2000,d:1000,h:450,hl:"높이",resize:true,minW:1900,minD:900},
@@ -207,7 +208,7 @@ const T={
   switch:{name:"스위치",floor:false,w:80,d:20,h:1100,hl:"높이"},
   towel:{name:"수건걸이",floor:false,w:600,d:80,h:1200,hl:"높이",minW:300},
   paper:{name:"휴지걸이",floor:false,w:150,d:100,h:700,hl:"높이"}};
-const PORDER=["bed","kitchen","wardrobe","desk","table","fridge","washer","shelf","shoe","toilet","basin","booth"],EORDER=["upper","wshelf","mirror","frame","hook","tv","aircon","switch","towel","paper"];
+const PORDER=["bed","wardrobe","desk","table","shelf"],EORDER=["wshelf","mirror","frame","hook","tv","aircon","switch"];
 // ---------- 벽(선분): 실 안에서 그 벽을 바라볼 때 왼쪽 끝 p0, 오른쪽 방향 dir, 실 안쪽 법선 nrm ----------
 let WC=null;const BATHFX=["toilet","basin","booth"];
 // 가구의 왼쪽·오른쪽 옆면과 앞면도 붙일 수 있는 면으로 추가(excl: 끌고 있는 가구와 그에 붙은 가구의 면은 제외)
@@ -222,14 +223,8 @@ function chain(h,f){let c=h,k=0;while(c&&k++<20){if(c===f||c.id===f.id)return tr
 function baseWalls(){const W=S.W,L=S.L;return{
   A:{p0:[0,0],dir:[1,0],len:W,name:"A"},
   B:{p0:[W,0],dir:[0,1],len:L,name:"B"},
-  C:{p0:[W,L],dir:[-1,0],len:W-BW,name:"현관 벽"},
-  D:{p0:[0,L-BL],dir:[0,-1],len:L-BL,name:"D"},
-  E:{p0:[BW,L-BL],dir:[-1,0],len:BW,name:"C",lab:"C"},
-  F:{p0:[BW,L],dir:[0,-1],len:BL,name:"화장실 옆벽(현관 쪽)"},
-  a:{p0:[0,L-BL+BT],dir:[1,0],len:BW-BT,name:"화장실 안 위쪽 벽",bath:1},
-  b:{p0:[BW-BT,L-BL+BT],dir:[0,1],len:BL-BT,name:"화장실 안 오른쪽 벽",bath:1},
-  c:{p0:[BW-BT,L],dir:[-1,0],len:BW-BT,name:"화장실 안 아래쪽 벽",bath:1},
-  d:{p0:[0,L],dir:[0,-1],len:BL-BT,name:"화장실 안 왼쪽 벽",bath:1}};}
+  C:{p0:[W,L],dir:[-1,0],len:W,name:"C(출입문 벽)"},
+  D:{p0:[0,L],dir:[0,-1],len:L,name:"D"}};}
 // 영역: room(방) / bath(화장실 안) / 그 밖
 function region(x,y){const L=S.L;if(x<0||y<0||x>S.W||y>L)return"out";if(x<BW&&y>L-BL){return(x<BW-BT&&y>L-BL+BT)?"bath":"wall";}return"room";}
 const regOf=f=>walls()[f.wall].bath?"bath":"room";
@@ -242,8 +237,7 @@ function nearestWall(x,y,f,fw){let best=null;const inB=region(x,y)==="bath",WS=w
     if(u<-200||u>s.len+200||n<-WT-20)continue;const dist=Math.abs(n)+(u<0?-u:u>s.len?u-s.len:0);if(!best||dist<best.dist)best={wall:k,u:clamp(u,0,s.len),dist};}return best;}
 function inRoomPt(x,y,rg){return region(x,y)===(rg||"room");}
 // ---------- 상태 ----------
-function initial(){return{W:3000,L:4700,fx:[{id:1,type:"window",wall:"A",u:1500,w:1500,d:20,h:900,h2:2100},
-  {id:2,type:"toilet",wall:"d",u:1530,w:400,d:700,h:420},{id:3,type:"basin",wall:"d",u:1050,w:500,d:450,h:800},{id:4,type:"booth",wall:"d",u:400,w:800,d:800,h:2000}],ew:"A",sel:null,all:false};}
+function initial(){return{W:3000,L:3600,fx:[{id:1,type:"window",wall:"A",u:1500,w:1500,d:20,h:900,h2:2100}],ew:"A",sel:null,all:false};}
 let S=initial();
 const me={H:1700,sit:0,pop:0,shw:0,hipw:0,foot:0};
 function body(){const H=me.H;return{H,shw:me.shw||.259*H,hipw:me.hipw||.191*H,foot:me.foot||.152*H,sit:me.sit||.52*H,eye:.936*H,sh:.818*H};}
@@ -257,7 +251,7 @@ function fdoors(f){const t=T[f.type];if(!t.doors)return[];const fr=f.d,res=[];
   else{const r=f.w;res.push([P(f.wall,f.u+f.w/2,fr),P(f.wall,f.u-f.w/2,fr),P(f.wall,f.u+f.w/2,fr+r),r]);}
   if(t.round)res.length=0;return res;}
 function bdoor(){const y0=S.L-BL+BT,x=BW-BT/2;return{H:[x,y0],F:[x,y0+BD],O:[x-BD,y0],r:BD};}
-function sweepHit(x,y,skip){const e=entry();if(inSector(x,y,e.H,e.F,e.O,e.r))return"현관문";const b=bdoor();if(inSector(x,y,b.H,b.F,b.O,b.r))return"화장실 문";
+function sweepHit(x,y,skip){const e=entry();if(inSector(x,y,e.H,e.F,e.O,e.r))return"출입문";
   for(const f of S.fx){if(f===skip)continue;for(const d of fdoors(f))if(inSector(x,y,d[0],d[1],d[2],d[3]))return T[f.type].name+" 문";}return null;}
 // ---------- 사람 실루엣(벽 좌표계 도형) ----------
 function sil(f){const B=body(),H=B.H,S2=B.shw/2,hw=B.hipw/2,fl=B.foot,sh=[];const E=(u,n,a,b,k)=>sh.push({t:"e",u,n,a,b,k}),Rr=(u0,u1,n0,n1,k)=>sh.push({t:"r",u0,u1,n0,n1,k});
@@ -302,10 +296,24 @@ function silHits(f){const hits=new Set();if(f.type==="paper")return[];sil(f).for
       const sw=sweepHit(x,y,f);if(sw)hits.add(sw);});});
   return[...hits];}
 // ---------- 판정 ----------
+// ---------- 휠체어 회전 공간(지름 1,500). 가구 문은 닫힌 상태로 본다 ----------
+const WCR=750,WCHK=(x,y)=>{const r=region(x,y);return r==="room"?null:r==="out"?"벽":"화장실";},wcHome=()=>({x:r10(S.W/2),y:r10(S.L/2)});
+function wcHits(){if(!S.wc)return[];const x=S.wc.x,y=S.wc.y,out=[];
+  S.fx.forEach(f=>{if(!T[f.type].floor||regOf(f)==="bath")return;const a=foot(f),dx=Math.max(a[0]-x,0,x-a[2]),dy=Math.max(a[1]-y,0,y-a[3]),nm=T[f.type].name;if(Math.hypot(dx,dy)<WCR-5&&!out.includes(nm))out.push(nm);});
+  for(let k=0;k<72;k++){const t=k/72*2*Math.PI,rg=WCHK(x+(WCR-5)*Math.cos(t),y+(WCR-5)*Math.sin(t));if(rg){if(!out.includes(rg))out.push(rg);}}
+  return out;}
+function wcSym(g,x,y,u,col){E("rect",{x:x-350,y:y-600,width:700,height:1200,rx:70,fill:"var(--paper)","fill-opacity":.85,stroke:col,"stroke-width":1.2*u},g);
+  E("rect",{x:x-350,y:y-280,width:80,height:640,rx:35,fill:col,opacity:.8},g);E("rect",{x:x+270,y:y-280,width:80,height:640,rx:35,fill:col,opacity:.8},g);
+  E("rect",{x:x-170,y:y-590,width:340,height:150,rx:30,fill:"none",stroke:col,"stroke-width":1.1*u},g);
+  E("ellipse",{cx:x,cy:y+120,rx:230,ry:110,fill:"none",stroke:col,"stroke-width":1.1*u},g);E("circle",{cx:x,cy:y+140,r:95,fill:"none",stroke:col,"stroke-width":1.1*u},g);}
+function drawWc(g,u){if(!S.wc)return;const h=wcHits(),bad=h.length>0,col=bad?"var(--warn)":"var(--accent)",gw=E("g",{"data-wc":"1",style:"cursor:move"},g),x=S.wc.x,y=S.wc.y;
+  E("circle",{cx:x,cy:y,r:WCR,fill:bad?"var(--warn-soft)":"var(--pme-soft)","fill-opacity":.55,stroke:col,"stroke-width":1.8*u,"stroke-dasharray":`${9*u} ${6*u}`},gw);
+  wcSym(gw,x,y,u,col);
+  text(gw,x,y-WCR-14*u,bad?`휠체어 회전 ⌀1,500 · 걸림: ${h.join(", ")}`:"휠체어 회전 ⌀1,500 · 확보",u,{"text-anchor":"middle","font-weight":700,fill:col,"font-size":11.5*u});}
 function judge(){const R=[],B=body();
   S.fx.forEach(f=>{const t=T[f.type];if(!t.floor)return;const a=foot(f);
     S.fx.forEach(g=>{if(g.id<=f.id||!T[g.type].floor)return;const b=foot(g);if(Math.min(a[2],b[2])-Math.max(a[0],b[0])>5&&Math.min(a[3],b[3])-Math.max(a[1],b[1])>5)R.push({k:`${t.name} ↔ ${T[g.type].name}`,t:"겹침",c:"w"});});
-    let hit=null;for(let x=a[0]+10;x<a[2];x+=30)for(let y=a[1]+10;y<a[3];y+=30){const s=sweepHit(x,y,f);if(s)hit=s;if(!inRoomPt(x,y,regOf(f)))hit=hit||"화장실·벽";}if(hit)R.push({k:`${t.name} ↔ ${hit}`,t:"부딪힘",c:"w"});});
+    let hit=null;for(let x=a[0]+10;x<a[2];x+=30)for(let y=a[1]+10;y<a[3];y+=30){const s=sweepHit(x,y,f);if(s)hit=s;if(!inRoomPt(x,y,regOf(f)))hit=hit||"벽";}if(hit)R.push({k:`${t.name} ↔ ${hit}`,t:"부딪힘",c:"w"});});
   S.fx.forEach(f=>{if(!T[f.type].floor)return;const lo=f.u-f.w/2,hi=f.u+f.w/2;if((f.wall==="F"&&hi>BL-BT-BD&&lo<BL-BT)||(f.wall==="b"&&lo<BD))R.push({k:`화장실 문 ↔ ${T[f.type].name}`,t:"문 막힘",c:"w"});});
   // 창 가림: 창턱보다 높은 가구가 창 앞에
   S.fx.filter(q=>q.type==="window").forEach(wd=>S.fx.forEach(f=>{if(!T[f.type].floor||f.wall!==wd.wall)return;const o=Math.min(f.u+f.w/2,wd.u+wd.w/2)-Math.max(f.u-f.w/2,wd.u-wd.w/2);if(o>50&&f.h>wd.h)R.push({k:`창 ↔ ${T[f.type].name}`,t:`창 ${fmt(o)} 가림`,c:"c"});}));
@@ -328,9 +336,10 @@ function judge(){const R=[],B=body();
     if(f.type==="table"){const n=tableSides(f).length;R.push({k:"앉을 수 있는 자리(벽·가구에 막힌 쪽 의자는 뺌)",t:n+"석",c:n===2?"o":n===1?"c":"w"});}
     if(f.type==="toilet"){let gap=Math.min(f.u,wlen(f.wall)-f.u);S.fx.forEach(g=>{if(g===f||g.wall!==f.wall||!T[g.type].floor)return;const e2=g.u>f.u?g.u-g.w/2:g.u+g.w/2;gap=Math.min(gap,Math.abs(e2-f.u));});const need=Math.round(B.shw/2+150);R.push({k:`변기 중심 ~ 옆 장애물(어깨/2+150 = ${fmt(need)})`,t:fmt(gap),c:gap>=need?"o":"w"});}
     if(f.type==="upper"){const k=S.fx.find(q=>q.type==="kitchen"&&q.wall===f.wall);if(k){const d=f.h-k.h;R.push({k:"상부장 하단 − 작업대(머리·시야 여유)",t:fmt(d),c:d>=500?"o":"w"});}}}}
+  if(S.wc){const h=wcHits();R.push({k:"휠체어 회전 공간(지름 1,500, 가구 문은 닫힌 상태)",t:h.length?"걸림: "+h.join(", "):"확보",c:h.length?"w":"o"});}
   if(S.fx.some(f=>T[f.type].floor)){let bad=0,cau=0;S.fx.forEach(f=>{if(f.type==="window")return;const h=silHits(f);if(h.length&&h.every(x=>/문$/.test(x)))cau++;else if(h.length)bad++;});
-    R.forEach(r=>{if(r.c==="w"&&!r.k.includes("실루엣"))bad++;});
-    const A=S.W*S.L/1e6;R.unshift({k:`전체 점검(${fmt(S.W)}×${fmt(S.L)}, ${A.toFixed(2)}㎡ · 최저주거기준 14㎡ ${A>=14?"이상":"미만"})`,t:bad?`충돌 ${bad}건`+(cau?` · 문 주의 ${cau}건`:""):cau?`문 주의 ${cau}건`:"모두 사용 가능",c:bad?"w":cau?"c":"o"});}
+    R.forEach(r=>{if(r.c==="w"&&!r.k.includes("실루엣")&&!r.k.includes("휠체어"))bad++;});
+    const A=S.W*S.L/1e6;R.unshift({k:`전체 점검(${fmt(S.W)}×${fmt(S.L)}, ${A.toFixed(2)}㎡ · 방)`,t:bad?`충돌 ${bad}건`+(cau?` · 문 주의 ${cau}건`:""):cau?`문 주의 ${cau}건`:"모두 사용 가능",c:bad?"w":cau?"c":"o"});}
   return R;}
 // ---------- 그리기 공통 ----------
 const pl=$("pl"),el=$("el"),iso=$("iso");let IU=3;
@@ -372,20 +381,12 @@ function drawPlan(){while(pl.firstChild)pl.removeChild(pl.firstChild);
   for(let y=0;y<=L;y+=100)E("line",{x1:0,y1:y,x2:W,y2:y,stroke:y%500?"var(--grid)":"var(--grid2)","stroke-width":.6*u},g);
   const e=entry(),wr=(x,y,w,h)=>E("rect",{x,y,width:w,height:h,fill:"var(--wall)"},g);
   wr(-WT,-WT,W+2*WT,WT);wr(-WT,0,WT,L+WT);wr(W,0,WT,L+WT);wr(-WT,L,e.x0+WT,WT);wr(e.x1,L,W+WT-e.x1,WT);
-  // 화장실 덩어리(고정)
-  E("rect",{x:0,y:L-BL+BT,width:BW-BT,height:BL-BT,fill:"var(--bg)"},g);
-  wr(0,L-BL,BW,BT);wr(BW-BT,L-BL+BT+BD,BT,BL-BT-BD);
-  text(g,(BW-BT)/2,L-BL/2+60,"화장실",u,{"text-anchor":"middle",fill:"var(--muted)","font-size":12*u,"font-weight":600,opacity:.6});
-  {const b=bdoor();sector(g,b.H,b.F,b.O,b.r,u,"var(--muted)",.3);}
-  // 현관: 신발 벗는 선(바닥 단차)
-  {const y=L-ENT;E("rect",{x:BW,y,width:W-BW,height:ENT,fill:"var(--grid2)",opacity:.25},g);E("line",{x1:BW,y1:y,x2:W,y2:y,stroke:"var(--warn)","stroke-width":1.8*u,"stroke-dasharray":`${8*u} ${4*u}`},g);
-   text(g,(BW+W)/2,y-8*u,"신발 벗는 선(현관 단차)",u,{"text-anchor":"middle",fill:"var(--warn)","font-size":11*u,"font-weight":600});}
   // 벽 이름
-  [["A",.12,"A"],["B",.22,"B"],["E",.5,"C"],["D",.4,"D"]].forEach(([k,r,lab])=>{const s=walls()[k],c=P(k,s.len*r,k==="E"?-BT/2:-WT/2);
+  [["A",.12,"A"],["B",.22,"B"],["C",.25,"C"],["D",.4,"D"]].forEach(([k,r,lab])=>{const s=walls()[k],c=P(k,s.len*r,-WT/2);
     E("circle",{cx:c[0],cy:c[1],r:11*u,fill:S.ew===k?"var(--accent)":"var(--paper)",stroke:"var(--wall)","stroke-width":1.5*u,style:"cursor:pointer","data-w":k},g);
     const t=E("text",{x:c[0],y:c[1],"text-anchor":"middle","dominant-baseline":"central","font-size":11.5*u,"font-weight":700,fill:S.ew===k?"var(--paper)":"var(--fg)","pointer-events":"none","font-family":"IBM Plex Sans KR, sans-serif"},g);t.textContent=lab;});
   // 현관문
-  sector(g,e.H,e.F,e.O,e.r,u);text(g,(e.x0+e.x1)/2,L+WT+80,"현관(고정)",u,{"text-anchor":"middle",fill:"var(--muted)","font-size":10.5*u});
+  sector(g,e.H,e.F,e.O,e.r,u);text(g,(e.x0+e.x1)/2,L+WT+80,"출입문(고정)",u,{"text-anchor":"middle",fill:"var(--muted)","font-size":10.5*u});
   // 기구
   S.fx.forEach(f=>{const sel=S.sel===f.id,col=sel?"var(--accent)":"var(--furn)",fl=T[f.type].floor;
     if(fl){const grp=E("g",{"data-f":f.id,style:"cursor:move"},g);fixSymbol(grp,f,u,col);const c=P(f.wall,f.u,f.d/2);text(grp,c[0],c[1],T[f.type].name,u,{"text-anchor":"middle","dominant-baseline":"middle","font-weight":600,fill:col,"font-size":11.5*u,"pointer-events":"none"});}
@@ -417,7 +418,8 @@ function drawPlan(){while(pl.firstChild)pl.removeChild(pl.firstChild);
   dimLine(g,0,-WT,W,-WT,`폭 ${fmt(W)}`,u,-40);dimLine(g,W+WT,0,W+WT,L,`길이 ${fmt(L)}`,u,-40);
   handle(g,W+WT/2,L*.65,u,"wB");handle(g,BW+(e.x0-BW)/2,L+WT/2,u,"wC");
   if(drag&&(drag.h==="wB"||drag.h==="wC"))text(g,W/2,L/3,`${fmt(W)} × ${fmt(L)} = ${(W*L/1e6).toFixed(2)}㎡`,u,{"text-anchor":"middle","font-size":20*u,"font-weight":700,fill:"var(--accent)"});
-  if(drag&&drag.pal&&drag.ghost.wall&&T[drag.ghost.type].floor){const gg=E("g",{opacity:.7},g);fixSymbol(gg,drag.ghost,u,"var(--accent)");}}
+  if(drag&&drag.pal&&drag.ghost.wall&&T[drag.ghost.type].floor){const gg=E("g",{opacity:.7},g);fixSymbol(gg,drag.ghost,u,"var(--accent)");}
+  drawWc(g,u);}
 // ---------- 입면 ----------
 function figure(p,cx,mode,u,base){const B=body(),H=B.H,col="var(--pme)",fill="var(--pme-soft)",Y=v=>-v,sh=B.shw,hp=B.hipw,hr=.065*H,g=E("g",{class:"sil"},p);let shY,hipY,headY;
   if(mode==="sit"){hipY=base+.03*H;shY=base+B.sit-.19*H;headY=base+B.sit-hr;[-1,1].forEach(s=>E("rect",{x:cx+s*hp*.25-.055*H,y:Y(base+.06*H),width:.11*H,height:base+.06*H,rx:.04*H,fill,stroke:col,"stroke-width":1.4*u},g));}
@@ -461,7 +463,7 @@ function drawElev(){while(el.firstChild)el.removeChild(el.firstChild);
   for(let y=0;y<=CEIL;y+=100)E("line",{x1:0,y1:Y(y),x2:Lw,y2:Y(y),stroke:y%500?"var(--grid)":"var(--grid2)","stroke-width":.6*u},g);
   E("rect",{x:-WT,y:Y(CEIL),width:WT,height:CEIL,fill:"var(--wall)"},g);E("rect",{x:Lw,y:Y(CEIL),width:WT,height:CEIL,fill:"var(--wall)"},g);
   E("line",{x1:-WT,y1:0,x2:Lw+WT,y2:0,stroke:"var(--fg)","stroke-width":2*u},g);E("line",{x1:-WT,y1:Y(CEIL),x2:Lw+WT,y2:Y(CEIL),stroke:"var(--fg)","stroke-width":1.2*u,"stroke-dasharray":`${6*u} ${3*u}`},g);
-  if(w==="C"){const e=entry(),u0=S.W-e.x1;E("rect",{x:u0,y:Y(2100),width:ED.w,height:2100,fill:"var(--paper)",stroke:"var(--fg)","stroke-width":1.6*u},g);text(g,u0+ED.w/2,Y(1050),"현관문",u,{"text-anchor":"middle"});}
+  if(w==="C"){const e=entry(),u0=S.W-e.x1;E("rect",{x:u0,y:Y(2100),width:ED.w,height:2100,fill:"var(--paper)",stroke:"var(--fg)","stroke-width":1.6*u},g);text(g,u0+ED.w/2,Y(1050),"출입문",u,{"text-anchor":"middle"});}
   if(w==="F"||w==="b"){const u0=w==="F"?BL-BT-BD:0;E("rect",{x:u0,y:Y(2100),width:BD,height:2100,fill:"var(--paper)",stroke:"var(--fg)","stroke-width":1.6*u},g);text(g,u0+BD/2,Y(1050),"화장실 문",u,{"text-anchor":"middle"});}
   if(false){E("rect",{x:0,y:Y(2100),width:800,height:2100,fill:"var(--paper)",stroke:"var(--fg)","stroke-width":1.6*u},g);text(g,400,Y(1050),"화장실 문",u,{"text-anchor":"middle"});}
   if(drag&&drag.pal&&drag.ghost.wall===w&&!T[drag.ghost.type].floor){const gg=E("g",{opacity:.6},g);elevFix(gg,Object.assign({id:-1},drag.ghost),u,true);}
@@ -492,15 +494,15 @@ const HINT={bed:"침대에 누운 사람과, 일어나 발을 내리는 자리�
   table:"2인용 식탁입니다. 양쪽 의자에 앉은 두 사람과 의자를 표시합니다. 끝의 □로 크기를 바꿉니다.",toilet:"변기에 앉은 사람과 일어설 때 머리가 나오는 위치(점선)입니다.",basin:"세수할 때 몸을 숙이고 팔꿈치를 벌린 모습입니다.",booth:"샤워부스 안에서 씻는 사람입니다. 끝의 □로 폭, 앞의 □로 깊이를 바꿉니다.",
   upper:"상부장을 쓰는 사람입니다. 하단은 작업대에서 500mm 이상 띄웁니다.",wshelf:"벽 선반에 손이 닿는지 판정합니다.",window:"창은 입면에서 위치와 크기를 바꿉니다. 창턱보다 높은 가구가 창 앞을 가리는지 판정합니다."};
 function drawTable(){const R=judge();$("out").innerHTML="<thead><tr><th>항목(mm)</th><th>결과</th></tr></thead><tbody>"+R.map(r=>`<tr><td>${r.k}</td><td class="${r.c||""}">${r.t}</td></tr>`).join("")+"</tbody>";
-  const f=S.fx.find(q=>q.id===S.sel);$("hint").textContent=f?HINT[f.type]:"가구(침대·주방·옷장·책상 등)는 평면 왼쪽 목록에서, 상부장·벽 선반·거울·액자는 입면 왼쪽 목록에서 끌어 놓습니다. 가구는 벽뿐 아니라 이미 놓은 가구의 옆면·앞면에도 붙고, 옆 가구에 가까이 가면 자석처럼 붙습니다. 창·화장실 벽·문·현관은 고정이고, 화장실 안의 변기·세면대·샤워부스는 옮기거나 바꿀 수 있습니다(화장실 안 벽 a~d). 현관의 빨간 점선은 신발 벗는 선입니다. 기구를 누르면 사용하는 사람과 문이 열리는 범위가 나타납니다. 모두 놓은 뒤 B·C벽의 □로 실을 줄이며 '모두 사용 가능'이 유지되는 최소 크기를 찾으십시오(최저주거기준 1인 14㎡).";}
+  const f=S.fx.find(q=>q.id===S.sel);$("hint").textContent=f?HINT[f.type]:"가구(침대·옷장·책상·식탁·책장)는 평면 왼쪽 목록에서, 벽 선반·거울·액자·옷걸이·TV·에어컨·스위치는 입면 왼쪽 목록에서 끌어 놓습니다. 가구는 벽뿐 아니라 이미 놓은 가구의 옆면·앞면에도 붙고, 옆 가구에 가까이 가면 자석처럼 붙습니다. 출입문(C벽)은 고정이고, 창은 입면에서 옮기거나 크기를 바꿀 수 있습니다. 실 크기는 B·C벽의 손잡이로 바꿉니다. 기구를 누르면 사용하는 사람과 문이 열리는 범위가 나타납니다. 모두 놓은 뒤 B·C벽의 □로 실을 줄이며 '모두 사용 가능'이 유지되는 최소 크기를 찾으십시오. 휠체어 버튼을 누르면 지름 1,500 회전 원을 놓고 가구에 걸리는지 확인할 수 있습니다.";}
 const sig=()=>S.fx.map(f=>f.id+f.wall).join();
 function buildDims(){const box=$("fdims");const L=S.fx.filter(f=>f.type!=="window");box.innerHTML='<span></span><b>폭</b><b>깊이</b><b>높이</b>'+(L.map(f=>`<span>${T[f.type].name} <small style="color:var(--muted)">(${walls()[f.wall]&&walls()[f.wall].host?walls()[f.wall].name:(/^[ABD]$/.test(f.wall)||walls()[f.wall].lab?walls()[f.wall].name+"벽":walls()[f.wall].name)})</small></span><input type="number" step="10" data-f="${f.id}" data-k="w"><input type="number" step="10" data-f="${f.id}" data-k="d"><input type="number" step="10" data-f="${f.id}" data-k="h">`).join("")||'<span style="grid-column:1/-1;color:var(--muted)">아직 놓은 가구가 없습니다.</span>');
   box.querySelectorAll("input").forEach(i=>i.addEventListener("input",()=>{const f=S.fx.find(q=>q.id===+i.dataset.f),v=+i.value;if(v>=10&&v<=3000){pushUndoT();f[i.dataset.k]=v;keepIn();render();}}));box.dataset.sig=sig();}
 function syncPanel(){if(document.activeElement!==$("rW"))$("rW").value=S.W;if(document.activeElement!==$("rL"))$("rL").value=S.L;$("rA").textContent=`면적 ${(S.W*S.L/1e6).toFixed(2)}㎡`;
   const box=$("fdims");if(box.dataset.sig!==sig())buildDims();box.querySelectorAll("input").forEach(i=>{if(document.activeElement!==i){const f=S.fx.find(q=>q.id===+i.dataset.f);if(f)i.value=f[i.dataset.k];}});}
 [["rW","W",2200,5000],["rL","L",3000,7000]].forEach(([id,k,a,b])=>$(id).addEventListener("input",e=>{const v=+e.target.value;if(v>=a&&v<=b){pushUndoT();S[k]=v;keepIn();render();}}));
-function keepIn(){WC=null;S.fx.forEach(f=>{f.w=Math.min(f.w,wlen(f.wall));f.u=clamp(f.u,f.w/2,wlen(f.wall)-f.w/2);});}
-[["A","A"],["B","B"],["E","C"],["D","D"]].forEach(([w,lab])=>{const b=document.createElement("button");b.textContent=lab;b.dataset.w=w;b.title=walls()[w].name;b.onclick=()=>{S.ew=w;render();};$("wtabs").appendChild(b);});
+function keepIn(){WC=null;if(S.wc){S.wc.x=clamp(S.wc.x,0,S.W);S.wc.y=clamp(S.wc.y,0,S.L);}S.fx.forEach(f=>{f.w=Math.min(f.w,wlen(f.wall));f.u=clamp(f.u,f.w/2,wlen(f.wall)-f.w/2);});}
+[["A","A"],["B","B"],["C","C"],["D","D"]].forEach(([w,lab])=>{const b=document.createElement("button");b.textContent=lab;b.dataset.w=w;b.title=walls()[w].name;b.onclick=()=>{S.ew=w;render();};$("wtabs").appendChild(b);});
 function setV(v){document.body.dataset.v=v;document.querySelectorAll("#vbtn button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===v));requestAnimationFrame(render);}
 document.querySelectorAll("#vbtn button").forEach(b=>b.onclick=()=>setV(b.dataset.v));
 // ---------- 더미 ----------
@@ -517,6 +519,7 @@ let lastT=0;function pushUndoT(){const t=performance.now();if(t-lastT>900)pushUn
 $("undoBtn").onclick=()=>{const v=UNDO.pop();if(!v)return;S=JSON.parse(v);$("undoBtn").disabled=!UNDO.length;render();};
 $("resetBtn").onclick=()=>{pushUndo();S=initial();render();};
 $("allBtn").onclick=()=>{S.all=!S.all;render();};
+$("wcBtn").onclick=()=>{pushUndo();S.wc=S.wc?null:wcHome();render();};
 // 그림 창 높이(폰)
 {const gr=$("sGrip"),st=document.querySelector(".stage");let y0=null,h0=0;const setH=h=>{st.style.flexBasis=clamp(h,160,innerHeight-120)+"px";render();};
   gr.addEventListener("pointerdown",e=>{y0=e.clientY;h0=st.getBoundingClientRect().height;gr.setPointerCapture(e.pointerId);});gr.addEventListener("pointermove",e=>{if(y0!=null)setH(h0+e.clientY-y0);});
@@ -555,6 +558,7 @@ function down(svg,e){ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY,svg});try{svg
   if([...ptrs.values()].filter(p=>p.svg===svg).length===2){drag=null;const ps=[...ptrs.values()].filter(p=>p.svg===svg);pinch={svg,d:Math.hypot(ps[0].x-ps[1].x,ps[0].y-ps[1].y)};return;}
   const t=e.target,w=world(svg,e),hid=t.getAttribute&&t.getAttribute("data-h"),fg=t.closest&&t.closest("[data-f]"),wl=t.getAttribute&&t.getAttribute("data-w");svg.setPointerCapture(e.pointerId);
   if(wl){S.ew=wl;ptrs.delete(e.pointerId);if(document.body.dataset.v==="plan"){setV("elev");return;}render();return;}
+  if(svg===pl&&S.wc&&!hid&&t.closest&&t.closest("[data-wc]")){pushUndo();drag={svg,wc:true,x:w.x,y:w.y,ox:S.wc.x,oy:S.wc.y};return;}
   if(hid){pushUndo();drag={svg,h:hid,x:w.x,y:w.y,o:JSON.parse(snap())};}
   else if(fg){const id=+fg.getAttribute("data-f"),f=S.fx.find(q=>q.id===id);S.sel=id;if(svg===el&&f.wall!==S.ew){render();return;}S.ew=f.wall;pushUndo();drag={svg,f:id,x:w.x,y:w.y,ou:f.u,oh:f.h,oh2:f.h2,moved:false};}
   else{drag={svg,pan:true,cx:e.clientX,cy:e.clientY,ox:VIEW[svg.id].ox,oy:VIEW[svg.id].oy,moved:false};return;} // 빈 곳 한 손가락 끌기 = 화면 이동
@@ -564,6 +568,7 @@ function move(e){WC=null;if(ptrs.has(e.pointerId))Object.assign(ptrs.get(e.point
     if(pinch.mx!=null){const V=VIEW[pinch.svg.id],uu=upp(pinch.svg);V.ox-=(mx-pinch.mx)*uu;V.oy-=(my-pinch.my)*uu;}zoomAt(pinch.svg,mx,my,d/pinch.d);pinch.d=d;pinch.mx=mx;pinch.my=my;}return;}
   if(drag&&drag.pan){if(Math.hypot(e.clientX-drag.cx,e.clientY-drag.cy)>4)drag.moved=true;if(!drag.moved)return;const V=VIEW[drag.svg.id],uu=upp(drag.svg);V.ox=drag.ox-(e.clientX-drag.cx)*uu;V.oy=drag.oy-(e.clientY-drag.cy)*uu;render();return;}
   if(drag&&drag.isoF){const f=S.fx.find(z=>z.id===drag.isoF),w=world(iso,e),q=unISO(w.x,w.y);drag.moved=true;if(f){placeAt(f,q[0]+drag.dx,q[1]+drag.dy);S.ew=f.wall;}render();return;}
+  if(drag&&drag.wc){const w=world(drag.svg,e);S.wc.x=r10(clamp(drag.ox+w.x-drag.x,0,S.W));S.wc.y=r10(clamp(drag.oy+w.y-drag.y,0,S.L));render();return;}
   if(!drag||drag.pal||drag.tap)return;const w=world(drag.svg,e),u0=upp(drag.svg);
   if(drag.f){const f=S.fx.find(q=>q.id===drag.f);if(Math.hypot(w.x-drag.x,w.y-drag.y)>8*u0)drag.moved=true;if(!drag.moved)return;
     if(drag.svg===pl){if(inRoom(w.x,w.y)){f.out=false;placeAt(f,w.x,w.y);S.ew=f.wall;}else f.out=true;}
@@ -571,7 +576,7 @@ function move(e){WC=null;if(ptrs.has(e.pointerId))Object.assign(ptrs.get(e.point
       if(!T[f.type].floor){const dh=-(w.y-drag.y);f.h=r10(clamp(drag.oh+dh,100,2300));if(f.h2!=null)f.h2=Math.min(CEIL,r10(drag.oh2+(f.h-drag.oh)));}}
     render();return;}
   const h=drag.h,o=drag.o,f=S.fx.find(q=>q.id===S.sel);
-  if(h==="wB"||h==="wC"){if(h==="wB")S.W=r10(clamp(o.W+(w.x-drag.x),2200,5000));else S.L=r10(clamp(o.L+(w.y-drag.y),3000,7000));
+  if(h==="wB"||h==="wC"){if(h==="wB")S.W=r10(clamp(o.W+(w.x-drag.x),2200,5000));else S.L=r10(clamp(o.L+(w.y-drag.y),2400,7000));
     // 가구는 제자리, 움직이는 벽(B·C)에 붙은 것만 따라감
     S.fx.forEach(q=>{const oq=o.fx.find(z=>z.id===q.id);if(!oq)return;if(q.wall==="C")q.u=oq.u+(S.W-o.W);else if(q.wall==="D")q.u=oq.u+(S.L-o.L);});keepIn();}
   else if(h==="h"&&f){const of=o.fx.find(q=>q.id===f.id);f.h=r10(clamp(of.h-(w.y-drag.y),100,2300));}
@@ -582,7 +587,7 @@ function move(e){WC=null;if(ptrs.has(e.pointerId))Object.assign(ptrs.get(e.point
     if(TT.floor&&!fitsRegion(f))Object.assign(f,prev);}
   render();}
 function up(e){ptrs.delete(e.pointerId);if(pinch){if([...ptrs.values()].filter(p=>p.svg===pinch.svg).length<2)pinch=null;return;}
-  if(!drag||drag.pal)return;const d=drag;drag=null;if(d.tap||(d.pan&&!d.moved)){S.sel=null;render();return;}if(d.pan||d.isoF){render();return;}
+  if(!drag||drag.pal)return;const d=drag;drag=null;if(d.tap||(d.pan&&!d.moved)){S.sel=null;render();return;}if(d.pan||d.isoF||d.wc){render();return;}
   if(d.f){const f=S.fx.find(q=>q.id===d.f);if(f&&f.out){const kids=S.fx.filter(q=>q!==f&&new RegExp("^f"+f.id+"[LRF]$").test(q.wall)).map(q=>[q,P(q.wall,q.u,q.d/2)]);
       S.fx=S.fx.filter(q=>q!==f);S.sel=null;WC=null;kids.forEach(([q,c])=>{if(!placeAt(q,c[0],c[1]))S.fx=S.fx.filter(z=>z!==q);});}else if(f)delete f.out;}render();}
 iso.addEventListener("wheel",e=>{e.preventDefault();zoomAt(iso,e.clientX,e.clientY,e.deltaY<0?1.15:1/1.15);},{passive:false});
@@ -607,7 +612,7 @@ function drawIso(){if(document.body.dataset.v!=="iso")return;while(iso.firstChil
   // 바닥(방·현관·화장실)
   poly([[0,0,0],[W,0,0],[W,L,0],[0,L,0]],"var(--paper)","var(--line)");
   for(let x=0;x<=W;x+=500)poly([[x,0,0],[x,L,0]],"none","var(--grid2)");for(let y=0;y<=L;y+=500)poly([[0,y,0],[W,y,0]],"none","var(--grid2)");
-  poly([[BW,L-ENT,0],[W,L-ENT,0],[W,L,0],[BW,L,0]],"var(--grid2)","none",.45);poly([[0,L-BL,0],[BW,L-BL,0],[BW,L,0],[0,L,0]],"var(--bg)","none",.9);
+  // 화장실·현관 없음(방)
   // 뒤쪽 벽 A(y=0)와 D(x=0): 창은 뚫어 보임
   const wd=S.fx.find(f=>f.type==="window");
   poly([[0,0,0],[W,0,0],[W,0,CEIL],[0,0,CEIL]],"var(--grid)","var(--wall)");
@@ -615,9 +620,9 @@ function drawIso(){if(document.body.dataset.v!=="iso")return;while(iso.firstChil
   poly([[0,0,0],[0,L,0],[0,L,CEIL],[0,0,CEIL]],"var(--grid2)","var(--wall)");
   // 기구를 부품(상자)과 장식으로 나누어 뒤에서 앞으로 그림
   const groups=[],key=r=>r[2]+r[3]+(r[0]+r[1])*.5;
-  const glass=[[0,L-BL,BW,L-BL+BT],[BW-BT,L-BL+BT+BD,BW,L]];
+  const glass=[];
   glass.forEach(r=>groups.push({key:key(r),id:null,parts:[{r,z0:0,z1:CEIL,c:"var(--accent-soft)",k:"glass"}],deco:[]}));
-  groups.push({key:key([BW-BT,L-BL+BT,BW,L-BL+BT+BD]),id:null,parts:[{r:[BW-BT,L-BL+BT,BW,L-BL+BT+BD],z0:2100,z1:CEIL,c:"var(--accent-soft)",k:"glass"}],deco:[]});
+  // (화장실 문 위 벽 없음)
   const FILL="var(--furn-fill)",PAPER="var(--paper)",DARK="#8e9599",GL="#cfe4ec";
   S.fx.forEach(f=>{if(f.type==="window")return;const t=f.type,w=f.w,d=f.d,h=f.h,parts=[],deco=[],m=(()=>{const a=walls()[f.wall].dir;return[-a[1],a[0]];})(),frontVis=m[0]>0||m[1]>0;
     const B=(u0,u1,n0,n1,z0,z1,c,k)=>parts.push({r:rectOn(f.wall,f.u+u0,f.u+u1,n0,n1),z0,z1,c:c||FILL,k:k||t});
@@ -661,9 +666,9 @@ function drawIso(){if(document.body.dataset.v!=="iso")return;while(iso.firstChil
   // 가구 이름(윗면)
   S.fx.forEach(f=>{if(!T[f.type].floor)return;const r=foot(f),q=ISO((r[0]+r[2])/2,(r[1]+r[3])/2,(f.type==="toilet"?780:f.h)+20);text(g,q[0],q[1],T[f.type].name,u,{"text-anchor":"middle","font-size":10.5*u,"font-weight":600,fill:"var(--furn)"});});
   // 벽 이름
-  [["A",W/2,0],["D",0,(L-BL)/2]].forEach(([n,x,y])=>{const q=ISO(x,y,CEIL+120);text(g,q[0],q[1],n+"벽",u,{"text-anchor":"middle","font-weight":700,fill:"var(--muted)"});});
-  const q=ISO(BW/2,L-BL/2,CEIL+80);text(g,q[0],q[1],"화장실",u,{"text-anchor":"middle",fill:"var(--muted)","font-size":11*u});}
-function render(){WC=null;$("allBtn").setAttribute("aria-pressed",!!S.all);drawPlan();drawElev();drawIso();drawTable();syncPanel();buildPal();}
+  [["A",W/2,0],["D",0,L/2]].forEach(([n,x,y])=>{const q=ISO(x,y,CEIL+120);text(g,q[0],q[1],n+"벽",u,{"text-anchor":"middle","font-weight":700,fill:"var(--muted)"});});
+}
+function render(){WC=null;$("allBtn").setAttribute("aria-pressed",!!S.all);$("wcBtn").setAttribute("aria-pressed",!!S.wc);drawPlan();drawElev();drawIso();drawTable();syncPanel();buildPal();}
 addEventListener("resize",render);
 setV("plan");
 })();

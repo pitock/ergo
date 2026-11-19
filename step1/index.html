@@ -720,7 +720,7 @@ function placeholders(){const H=S.me.H,r=BASE,est={sit:(.055+r.trunk+r.neck+r.he
 function code(){const m=S.me;return"D2-"+[m.H,m.sit,m.sel,m.fh,m.pop,m.bpl,m.shw,m.hipw,m.span,m.foot].map(v=>v?Math.round(v):0).join("-");}
 // 원래 체형: 직접 입력한 치수를 따로 보관해 두었다가 50% 초기화 뒤에 되돌림
 let OWN=null;
-function setOwn(){OWN=Object.assign({},S.me);try{localStorage.setItem("ergoMeOwn",JSON.stringify(OWN));}catch(e){}syncOwn();}
+function setOwn(){OWN=Object.assign({},S.me);try{localStorage.setItem("ergoMeOwn",JSON.stringify(OWN));if(OWN.H>1000)localStorage.setItem("ergoDummy",code());}catch(e){}syncOwn();}
 function syncOwn(){const b=$("restoreMe");if(b)b.disabled=!OWN||JSON.stringify(OWN)===JSON.stringify(S.me);}
 function saveMe(){$("dcode").textContent=code();try{localStorage.setItem("ergoMe",JSON.stringify(S.me));}catch(e){}}
 function loadMe(){try{const v=JSON.parse(localStorage.getItem("ergoMe")||"null");if(v&&v.H>1000)S.me=Object.assign(S.me,v);}catch(e){}

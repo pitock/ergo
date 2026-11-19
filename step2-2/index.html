@@ -472,7 +472,7 @@ $("fitMe").onclick=()=>{cancelTween();pushUndo();
   else if(S.scene==="bath"){f.bath.rim=r10(clamp(seatH,350,Math.min(kneeH,800)));f.bath.wl=Math.min(f.bath.wl,f.bath.rim-30);setPose("blie");place("blie");draw();
     const B=refBody();if(B){f.bath.L=r10(clamp(B.toe[0]+40-f.bath.x+f.bath.wt,1000,2200));}
     msg=`제안: 욕조 턱 ${f.bath.rim}, 길이 ${f.bath.L}mm. 턱은 걸터앉기 좋은 높이(오금높이 수준)로 해 무릎 높이를 넘지 않게 하고, 길이는 기대 누웠을 때 발끝이 끝벽에 닿아 몸이 미끄러지지 않는 정도입니다.`;}
-  else if(S.scene==="kitchen"&&!f.chair.wc){const T=TASK[f.counter.task]||TASK.light;f.counter.h=r10(elbowStand+T.fit);f.upper.t=r10(Math.min(2400,(r.ank+r.sh+r.th+r.trunk+r.ua+r.fa+GRIP*r.hand)*H-50));f.upper.b=r10(Math.max(f.counter.h+450,f.upper.t-700));setPose("counter");S.x=170;
+  else if(S.scene==="kitchen"&&!f.chair.wc){const T=TASK[f.counter.task]||TASK.light;f.counter.h=r10(elbowStand+T.fit);f.upper.t=r10(Math.min(2400,(r.ank+r.sh+r.th+r.trunk+r.ua+r.fa+GRIP*r.hand)*H-50));f.upper.b=r10(Math.max(f.counter.h+500,f.upper.t-700));setPose("counter");S.x=170;
     msg=`제안: 작업대 높이 ${f.counter.h}, 상부장 상단 ${f.upper.t}mm. 작업대는 ${T.name} 기준(선 팔꿈치 ${T.fit>0?"+":""}${T.fit}mm), 상부장 상단은 손이 닿는 높이에 맞췄습니다.`;}
   else{if(S.scene!=="study"&&!f.chair.wc)scene("study");const c=f.chair;
     S.x=c.x+130;setPose("sit");
@@ -1225,6 +1225,7 @@ function table(ps,B){
   if(f.upper.on){
     rel("상부장 상단 도달",b=>{const d=b.reachMax-f.upper.t;return {t:(d>=0?"가능 ":"불가 ")+sgn(d),c:d>=0?"o":"w"};});
     rel("상부장 하단 − 눈높이",b=>({t:sgn(f.upper.b-b.eye[1])}));
+    if(f.counter.on)rel("상부장 하단 − 작업대(500 이상)",b=>{const d=f.upper.b-f.counter.h;return {t:sgn(d),c:d>=500?"o":"w"};});
   }
   hints.push("바닥 아래 띠는 지지면, 점선은 무게중심 수직선입니다. 수직선이 띠를 벗어나면 넘어집니다.");
   const head=`<thead><tr><th>항목(mm)</th>${ps.map(p=>`<th style="color:var(--p${p})">${labelOf(p)}</th>`).join("")}</tr></thead>`;
