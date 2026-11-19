@@ -299,10 +299,16 @@ function silHits(f){const hits=new Set();if(f.type==="paper")return[];sil(f).for
   return[...hits];}
 // ---------- 판정 ----------
 // ---------- 휠체어 회전 공간(지름 1,500). 가구 문은 닫힌 상태로 본다 ----------
-const WCR=750,WCHK=(x,y)=>{const r=region(x,y);return r==="room"?null:r==="out"?"벽":"화장실";},wcHome=()=>({x:r10(S.W/2),y:r10(S.L/2)});
+const WCR=750,WCHK=(x,y)=>{const e=entry();if(y>S.L&&x>=e.x0+5&&x<=e.x1-5)return null;const r=region(x,y);return r==="room"?null:r==="out"?"벽":"화장실";},wcHome=()=>({x:r10(S.W/2),y:r10(S.L/2)});
 function wcHits(){if(!S.wc)return[];const x=S.wc.x,y=S.wc.y,out=[];
   S.fx.forEach(f=>{if(!T[f.type].floor||regOf(f)==="bath")return;const a=foot(f),dx=Math.max(a[0]-x,0,x-a[2]),dy=Math.max(a[1]-y,0,y-a[3]),nm=T[f.type].name;if(Math.hypot(dx,dy)<WCR-5&&!out.includes(nm))out.push(nm);});
   for(let k=0;k<72;k++){const t=k/72*2*Math.PI,rg=WCHK(x+(WCR-5)*Math.cos(t),y+(WCR-5)*Math.sin(t));if(rg){if(!out.includes(rg))out.push(rg);}}
+  return out;}
+function wcBodyHits(){if(!S.wc)return[];const x=S.wc.x,y=S.wc.y,ra=(S.wc.a||0)*Math.PI/180,c=Math.cos(ra),sn=Math.sin(ra),out=[];
+  const rects=S.fx.filter(f=>T[f.type].floor&&regOf(f)!=="bath").map(f=>[foot(f),T[f.type].name]);
+  for(let lx=-325;lx<=325;lx+=50)for(let ly=-525;ly<=600;ly+=50){const px=x+lx*c-ly*sn,py=y+lx*sn+ly*c;
+    const rg=WCHK(px,py);if(rg&&!out.includes(rg))out.push(rg);
+    rects.forEach(([a,nm])=>{if(px>a[0]+5&&px<a[2]-5&&py>a[1]+5&&py<a[3]-5&&!out.includes(nm))out.push(nm);});}
   return out;}
 function wcSym(g,x,y,u,col,a){const s=E("g",{transform:`rotate(${a||0} ${x} ${y})`},g),sw=1.1*u,R=(x0,y0,w,h,o)=>E("rect",Object.assign({x:x+x0,y:y+y0,width:w,height:h,fill:"var(--paper)",stroke:col,"stroke-width":sw},o||{}),s),Ln=(x1,y1,x2,y2)=>E("line",{x1:x+x1,y1:y+y1,x2:x+x2,y2:y+y2,stroke:col,"stroke-width":sw},s);
   // 위에서 본 수동 휠체어(폭 약 650, 길이 약 1,150), 앞은 위쪽(-y)
@@ -314,12 +320,16 @@ function wcSym(g,x,y,u,col,a){const s=E("g",{transform:`rotate(${a||0} ${x} ${y}
   R(-160,-525,320,85,{rx:14}); // 발판
   E("circle",{cx:x-205,cy:y-300,r:42,fill:col},s);E("circle",{cx:x+205,cy:y-300,r:42,fill:col},s); // 앞바퀴
   E("path",{d:`M${x} ${y-620} l-55 70 h110 z`,fill:col},s);} // 앞 방향
-function drawWc(g,u){if(!S.wc)return;const h=wcHits(),bad=h.length>0,col=bad?"var(--warn)":"var(--accent)",gw=E("g",{"data-wc":"1",style:"cursor:move"},g),x=S.wc.x,y=S.wc.y,a=S.wc.a||0,ra=a*Math.PI/180;
-  E("circle",{cx:x,cy:y,r:WCR,fill:bad?"var(--warn-soft)":"var(--pme-soft)","fill-opacity":.55,stroke:col,"stroke-width":1.8*u,"stroke-dasharray":`${9*u} ${6*u}`},gw);
+function drawWc(g,u){if(!S.wc)return;const bh=wcBodyHits(),bb=bh.length>0,tc=S.wc.t?wcHits():null,tb=tc&&tc.length>0,x=S.wc.x,y=S.wc.y,a=S.wc.a||0,ra=a*Math.PI/180,
+    col=bb?"var(--warn)":"var(--accent)",gw=E("g",{"data-wc":"1",style:"cursor:move"},g);
+  if(!S.wc.t)E("circle",{cx:x,cy:y,r:WCR,fill:"none",stroke:"var(--muted)","stroke-width":1.2*u,"stroke-dasharray":`${6*u} ${6*u}`,opacity:.45},gw);
+  else E("circle",{cx:x,cy:y,r:WCR,fill:tb?"var(--warn-soft)":"var(--pme-soft)","fill-opacity":.55,stroke:tb?"var(--warn)":"var(--ok,#2e8b57)","stroke-width":1.8*u,"stroke-dasharray":`${9*u} ${6*u}`},gw);
   wcSym(gw,x,y,u,col,a);
   const kx=x+Math.sin(ra)*690,ky=y-Math.cos(ra)*690;E("circle",{cx:kx,cy:ky,r:9*u,fill:"var(--paper)",stroke:col,"stroke-width":1.8*u,"data-wcr":"1",style:"cursor:grab"},gw);
   E("text",{x:kx,y:ky,"text-anchor":"middle","dominant-baseline":"central","font-size":11*u,"font-weight":700,fill:col,"pointer-events":"none"},gw).textContent="↻";
-  text(gw,x,y-WCR-14*u,bad?`휠체어 회전 ⌀1,500 · 걸림: ${h.join(", ")}`:"휠체어 회전 ⌀1,500 · 확보",u,{"text-anchor":"middle","font-weight":700,fill:col,"font-size":11.5*u});}
+  const l1=bb?`휠체어 걸림: ${bh.join(", ")}`:"휠체어 통과 가능",l2=!S.wc.t?"↻를 돌리면 이 자리의 회전 공간(⌀1,500)을 확인":tb?`회전 공간 부족: ${tc.join(", ")}`:"회전 공간 ⌀1,500 확보";
+  text(gw,x,y-WCR-30*u,l1,u,{"text-anchor":"middle","font-weight":700,fill:col,"font-size":11.5*u});
+  text(gw,x,y-WCR-14*u,l2,u,{"text-anchor":"middle","font-weight":600,fill:!S.wc.t?"var(--muted)":tb?"var(--warn)":"var(--ok,#2e8b57)","font-size":10.5*u});}
 function judge(){const R=[],B=body();
   S.fx.forEach(f=>{const t=T[f.type];if(!t.floor)return;const a=foot(f);
     S.fx.forEach(g=>{if(g.id<=f.id||!T[g.type].floor)return;const b=foot(g);if(Math.min(a[2],b[2])-Math.max(a[0],b[0])>5&&Math.min(a[3],b[3])-Math.max(a[1],b[1])>5)R.push({k:`${t.name} ↔ ${T[g.type].name}`,t:"겹침",c:"w"});});
@@ -346,7 +356,8 @@ function judge(){const R=[],B=body();
     if(f.type==="table"){const n=tableSides(f).length;R.push({k:"앉을 수 있는 자리(벽·가구에 막힌 쪽 의자는 뺌)",t:n+"석",c:n===2?"o":n===1?"c":"w"});}
     if(f.type==="toilet"){let gap=Math.min(f.u,wlen(f.wall)-f.u);S.fx.forEach(g=>{if(g===f||g.wall!==f.wall||!T[g.type].floor)return;const e2=g.u>f.u?g.u-g.w/2:g.u+g.w/2;gap=Math.min(gap,Math.abs(e2-f.u));});const need=Math.round(B.shw/2+150);R.push({k:`변기 중심 ~ 옆 장애물(어깨/2+150 = ${fmt(need)})`,t:fmt(gap),c:gap>=need?"o":"w"});}
     if(f.type==="upper"){const k=S.fx.find(q=>q.type==="kitchen"&&q.wall===f.wall);if(k){const d=f.h-k.h;R.push({k:"상부장 하단 − 작업대(머리·시야 여유)",t:fmt(d),c:d>=500?"o":"w"});}}}}
-  if(S.wc){const h=wcHits();R.push({k:"휠체어 회전 공간(지름 1,500, 가구 문은 닫힌 상태)",t:h.length?"걸림: "+h.join(", "):"확보",c:h.length?"w":"o"});}
+  if(S.wc){const bh=wcBodyHits();R.push({k:"휠체어 본체(지나갈 수 있는가)",t:bh.length?"걸림: "+bh.join(", "):"통과",c:bh.length?"w":"o"});
+    if(S.wc.t){const h=wcHits();R.push({k:"이 자리의 회전 공간(⌀1,500, 가구 문은 닫힌 상태)",t:h.length?"부족: "+h.join(", "):"확보",c:h.length?"w":"o"});}else R.push({k:"이 자리의 회전 공간(⌀1,500)",t:"↻로 돌려 확인",c:""});}
   if(S.fx.some(f=>T[f.type].floor)){let bad=0,cau=0;S.fx.forEach(f=>{if(f.type==="window")return;const h=silHits(f);if(h.length&&h.every(x=>/문$/.test(x)))cau++;else if(h.length)bad++;});
     R.forEach(r=>{if(r.c==="w"&&!r.k.includes("실루엣")&&!r.k.includes("휠체어"))bad++;});
     const A=S.W*S.L/1e6;R.unshift({k:`전체 점검(${fmt(S.W)}×${fmt(S.L)}, ${A.toFixed(2)}㎡ · 방)`,t:bad?`충돌 ${bad}건`+(cau?` · 문 주의 ${cau}건`:""):cau?`문 주의 ${cau}건`:"모두 사용 가능",c:bad?"w":cau?"c":"o"});}
@@ -505,7 +516,7 @@ const HINT={bed:"침대에 누운 사람과, 일어나 발을 내리는 자리�
   table:"2인용 테이블입니다. 양쪽 의자에 앉은 두 사람과 의자를 표시합니다. 끝의 □로 크기를 바꿉니다.",toilet:"변기에 앉은 사람과 일어설 때 머리가 나오는 위치(점선)입니다.",basin:"세수할 때 몸을 숙이고 팔꿈치를 벌린 모습입니다.",booth:"샤워부스 안에서 씻는 사람입니다. 끝의 □로 폭, 앞의 □로 깊이를 바꿉니다.",
   upper:"상부장을 쓰는 사람입니다. 하단은 작업대에서 500mm 이상 띄웁니다.",wshelf:"벽 선반에 손이 닿는지 판정합니다.",window:"창은 입면에서 위치와 크기를 바꿉니다. 창턱보다 높은 가구가 창 앞을 가리는지 판정합니다."};
 function drawTable(){const R=judge();$("out").innerHTML="<thead><tr><th>항목(mm)</th><th>결과</th></tr></thead><tbody>"+R.map(r=>`<tr><td>${r.k}</td><td class="${r.c||""}">${r.t}</td></tr>`).join("")+"</tbody>";
-  const f=S.fx.find(q=>q.id===S.sel);$("hint").textContent=f?HINT[f.type]:"가구(침대·옷장·책상·테이블·책장)는 평면 왼쪽 목록에서, 벽 선반·거울·액자·옷걸이·TV·에어컨·스위치는 입면 왼쪽 목록에서 끌어 놓습니다. 가구는 벽이나 이미 놓은 가구의 옆면·앞면에 가까이(250mm 안) 가져가면 붙고, 멀리 두면 방 안에 자유롭게 놓입니다. 자유롭게 놓은 가구는 ↻로 90°씩 돌립니다. 출입문(C벽)은 고정이고, 창은 입면에서 옮기거나 크기를 바꿀 수 있습니다. 실 크기는 B·C벽의 손잡이로 바꿉니다. 기구를 누르면 사용하는 사람과 문이 열리는 범위가 나타납니다. 모두 놓은 뒤 B·C벽의 □로 실을 줄이며 '모두 사용 가능'이 유지되는 최소 크기를 찾으십시오. 휠체어 버튼을 누르면 지름 1,500 회전 원이 놓입니다. 끌어서 옮기고, 앞쪽의 ↻를 돌려 방향을 바꿉니다.";}
+  const f=S.fx.find(q=>q.id===S.sel);$("hint").textContent=f?HINT[f.type]:"가구(침대·옷장·책상·테이블·책장)는 평면 왼쪽 목록에서, 벽 선반·거울·액자·옷걸이·TV·에어컨·스위치는 입면 왼쪽 목록에서 끌어 놓습니다. 가구는 벽이나 이미 놓은 가구의 옆면·앞면에 가까이(250mm 안) 가져가면 붙고, 멀리 두면 방 안에 자유롭게 놓입니다. 자유롭게 놓은 가구는 ↻로 90°씩 돌립니다. 출입문(C벽)은 고정이고, 창은 입면에서 옮기거나 크기를 바꿀 수 있습니다. 실 크기는 B·C벽의 손잡이로 바꿉니다. 기구를 누르면 사용하는 사람과 문이 열리는 범위가 나타납니다. 모두 놓은 뒤 B·C벽의 □로 실을 줄이며 '모두 사용 가능'이 유지되는 최소 크기를 찾으십시오. 휠체어 버튼을 누르면 휠체어가 놓입니다. 끌어서 옮기면 지나갈 수 있는지(본체 걸림)를 판정하고, 앞쪽의 ↻를 돌리면 그 자리의 회전 공간(지름 1,500)을 판정합니다.";}
 const sig=()=>S.fx.map(f=>f.id+f.wall).join();
 function buildDims(){const box=$("fdims");const L=S.fx.filter(f=>f.type!=="window");box.innerHTML='<span></span><b>폭</b><b>깊이</b><b>높이</b>'+(L.map(f=>`<span>${T[f.type].name} <small style="color:var(--muted)">(${walls()[f.wall]&&walls()[f.wall].host?walls()[f.wall].name:(/^[ABD]$/.test(f.wall)||walls()[f.wall].lab?walls()[f.wall].name+"벽":walls()[f.wall].name)})</small></span><input type="number" step="10" data-f="${f.id}" data-k="w"><input type="number" step="10" data-f="${f.id}" data-k="d"><input type="number" step="10" data-f="${f.id}" data-k="h">`).join("")||'<span style="grid-column:1/-1;color:var(--muted)">아직 놓은 가구가 없습니다.</span>');
   box.querySelectorAll("input").forEach(i=>i.addEventListener("input",()=>{const f=S.fx.find(q=>q.id===+i.dataset.f),v=+i.value;if(v>=10&&v<=3000){pushUndoT();f[i.dataset.k]=v;keepIn();render();}}));box.dataset.sig=sig();}
@@ -588,8 +599,8 @@ function move(e){WC=null;if(ptrs.has(e.pointerId))Object.assign(ptrs.get(e.point
     if(pinch.mx!=null){const V=VIEW[pinch.svg.id],uu=upp(pinch.svg);V.ox-=(mx-pinch.mx)*uu;V.oy-=(my-pinch.my)*uu;}zoomAt(pinch.svg,mx,my,d/pinch.d);pinch.d=d;pinch.mx=mx;pinch.my=my;}return;}
   if(drag&&drag.pan){if(Math.hypot(e.clientX-drag.cx,e.clientY-drag.cy)>4)drag.moved=true;if(!drag.moved)return;const V=VIEW[drag.svg.id],uu=upp(drag.svg);V.ox=drag.ox-(e.clientX-drag.cx)*uu;V.oy=drag.oy-(e.clientY-drag.cy)*uu;render();return;}
   if(drag&&drag.isoF){const f=S.fx.find(z=>z.id===drag.isoF),w=world(iso,e),q=unISO(w.x,w.y);drag.moved=true;if(f){placeAt(f,q[0]+drag.dx,q[1]+drag.dy);if(DIRS0[f.wall])S.ew=f.wall;}render();return;}
-  if(drag&&drag.wcr){const w=world(drag.svg,e);S.wc.a=(Math.round(Math.atan2(w.x-S.wc.x,-(w.y-S.wc.y))*180/Math.PI/15)*15+360)%360;render();return;}
-  if(drag&&drag.wc){const w=world(drag.svg,e);S.wc.x=r10(clamp(drag.ox+w.x-drag.x,0,S.W));S.wc.y=r10(clamp(drag.oy+w.y-drag.y,0,S.L));render();return;}
+  if(drag&&drag.wcr){const w=world(drag.svg,e);S.wc.t=true;S.wc.a=(Math.round(Math.atan2(w.x-S.wc.x,-(w.y-S.wc.y))*180/Math.PI/15)*15+360)%360;render();return;}
+  if(drag&&drag.wc){const w=world(drag.svg,e);S.wc.x=r10(clamp(drag.ox+w.x-drag.x,0,S.W));S.wc.y=r10(clamp(drag.oy+w.y-drag.y,0,S.L));S.wc.t=false;render();return;}
   if(!drag||drag.pal||drag.tap)return;const w=world(drag.svg,e),u0=upp(drag.svg);
   if(drag.f){const f=S.fx.find(q=>q.id===drag.f);if(Math.hypot(w.x-drag.x,w.y-drag.y)>8*u0)drag.moved=true;if(!drag.moved)return;
     if(drag.svg===pl){if(inRoom(w.x,w.y)){f.out=false;placeAt(f,w.x,w.y);if(DIRS0[f.wall])S.ew=f.wall;}else f.out=true;}
